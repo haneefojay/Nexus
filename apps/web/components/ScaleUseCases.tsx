@@ -33,16 +33,16 @@ export function ScaleUseCases() {
           </h2>
           <div className="scale-metrics">
             <div>
-              <strong>50k+</strong>
-              <span>assets / deployment</span>
+              <strong>ONE</strong>
+              <span>asset register</span>
             </div>
             <div>
-              <strong>24/7</strong>
-              <span>operational context</span>
+              <strong>FULL</strong>
+              <span>inspection history</span>
             </div>
             <div>
-              <strong>&lt;8s</strong>
-              <span>signal latency</span>
+              <strong>TRACE</strong>
+              <span>evidence to action</span>
             </div>
           </div>
         </div>

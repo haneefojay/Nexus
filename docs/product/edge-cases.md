@@ -1,0 +1,41 @@
+# Edge Cases
+
+Each case is a required design/test input, not an optional note.
+
+| ID       | Scenario                                                         | Expected behavior                                                               | Affected subsystem | Test                    | Delivery  |
+| -------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------ | ----------------------- | --------- |
+| EDGE-001 | User repeats sign-up for normalized existing email               | Return generic response; do not enumerate accounts                              | Auth               | security/E2E            | Phase 1   |
+| EDGE-002 | Final owner is removed or downgraded                             | Reject and retain owner                                                         | Membership         | unit/integration        | Phase 1   |
+| EDGE-003 | Invite expires, is revoked, or email differs                     | Reject without membership mutation                                              | Membership/Auth    | E2E                     | Phase 1   |
+| EDGE-004 | Site is archived with history                                    | Preserve history; block new assets/runs                                         | Site               | unit/E2E                | Phase 1   |
+| EDGE-005 | Asset parent is itself or forms a cycle                          | Reject transaction                                                              | Asset hierarchy    | unit/integration        | Phase 1   |
+| EDGE-006 | CSV contains duplicate identifiers or coordinates outside bounds | Return row errors; no silent partial import                                     | Import             | integration             | Phase 1   |
+| EDGE-007 | Same import is confirmed twice                                   | Return same logical result                                                      | Import/Worker      | integration             | Phase 1   |
+| EDGE-008 | Map viewport crosses antimeridian                                | Split/normalize query and return bounded result                                 | Map/PostGIS        | integration             | Phase 1   |
+| EDGE-009 | Published template edit attempted                                | Reject; create a new version                                                    | Templates          | unit/integration        | Phase 2   |
+| EDGE-010 | Plan recurrence falls in DST gap                                 | Advance to next valid local instant and record UTC                              | Scheduling         | unit                    | Phase 2   |
+| EDGE-011 | Plan recurrence falls in DST overlap                             | Use earlier offset deterministically                                            | Scheduling         | unit                    | Phase 2   |
+| EDGE-012 | Target archived before run generation                            | Do not generate a new run                                                       | Scheduling/Worker  | integration             | Phase 2   |
+| EDGE-013 | Worker retries same recurrence window                            | No duplicate run                                                                | Scheduling/Worker  | integration             | Phase 2   |
+| EDGE-014 | Two devices attempt to start one run                             | First valid claim wins; second sees conflict                                    | Inspection         | integration/offline E2E | Phase 2   |
+| EDGE-015 | Required evidence missing at submission                          | Reject with field-level detail; preserve draft                                  | Inspection         | E2E                     | Phase 2   |
+| EDGE-016 | Submit request is retried after timeout                          | Return original submission result                                               | Inspection         | integration             | Phase 2   |
+| EDGE-017 | Submitted answer mutation attempted                              | Reject immutable-record mutation                                                | Inspection         | unit/security           | Phase 2   |
+| EDGE-018 | Critical finding closed without verification                     | Reject transition                                                               | Finding            | unit/E2E                | Phase 3   |
+| EDGE-019 | Finding dismissal has no reason                                  | Reject validation                                                               | Finding            | unit                    | Phase 3   |
+| EDGE-020 | Second corrective action requested for same finding              | Conflict or return existing idempotent result                                   | Corrective action  | integration             | Phase 3   |
+| EDGE-021 | Assignee loses membership during action                          | Deny write; retain attribution and history                                      | Authorization      | security/E2E            | Phase 3   |
+| EDGE-022 | Upload MIME disagrees with content                               | Reject finalization and quarantine/delete object                                | Storage            | security/integration    | Phase 3   |
+| EDGE-023 | Upload finalization references another tenant                    | Return non-disclosing denial                                                    | Storage/Tenancy    | security                | Phase 3   |
+| EDGE-024 | Email provider fails after domain commit                         | Retry notification; do not roll back domain action                              | Notifications      | integration             | Phase 3   |
+| EDGE-025 | Offline session expires before sync                              | Require reauthentication; retain protected local queue                          | Offline/Auth       | offline E2E             | Phase 4   |
+| EDGE-026 | Offline commands arrive out of sequence                          | Reject/defer dependent commands with explicit result                            | Offline sync       | integration             | Phase 4   |
+| EDGE-027 | Same offline batch is replayed                                   | Return prior per-command outcomes                                               | Offline sync       | integration             | Phase 4   |
+| EDGE-028 | Server record was submitted while stale client edits             | Server immutable state wins; emit conflict                                      | Offline sync       | offline E2E             | Phase 4   |
+| EDGE-029 | Photo upload succeeds but finalization fails                     | Keep retryable local state; clean orphan by policy                              | Offline/Storage    | offline E2E             | Phase 4   |
+| EDGE-030 | Browser storage quota is exhausted                               | Show blocking error before claiming local save                                  | PWA                | E2E                     | Phase 4   |
+| EDGE-031 | Report job retries                                               | Generate one logical report or supersede atomically                             | Reporting/Worker   | integration             | Phase 5   |
+| EDGE-032 | Report download URL expires                                      | Require reauthorization and issue a new URL                                     | Reporting/Storage  | security                | Phase 5   |
+| EDGE-033 | Cross-tenant identifier is guessed                               | Return scoped not-found/denial with no metadata                                 | All API            | security                | Phase 1-5 |
+| EDGE-034 | Organization timezone changes                                    | Future schedules use new zone; historical instants remain unchanged             | Scheduling/Audit   | unit/integration        | Phase 2   |
+| EDGE-035 | Clock skew changes client timestamps                             | Server receipt time governs authority; retain client capture time as provenance | Offline/Audit      | integration             | Phase 4   |

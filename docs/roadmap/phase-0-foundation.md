@@ -19,40 +19,40 @@ Business features are explicitly excluded.
 
 ## Requirements
 
-- [ ] All product and non-functional requirements have stable IDs.
-- [ ] Every requirement maps to a phase and verification method.
-- [ ] All accepted ADRs exist.
+- [x] All product and non-functional requirements have stable IDs.
+- [x] Every requirement maps to a phase and verification method.
+- [x] All accepted ADRs exist.
 
 ## Implementation
 
 - [x] Preserve marketing site under `apps/web`.
 - [x] Create initial pnpm/Turborepo structure.
 - [x] Install UI/UX Pro Max.
-- [ ] Create API and worker shells.
-- [ ] Create package boundaries.
-- [ ] Create Docker Compose and `.env.example`.
-- [ ] Configure CI and dependency security checks.
+- [x] Create API and worker shells.
+- [x] Create package boundaries.
+- [x] Create Docker Compose and `.env.example`.
+- [x] Configure CI and dependency security checks.
 
 ## Validation
 
-- [ ] `pnpm install`
-- [ ] `pnpm format:check`
-- [ ] `pnpm lint`
-- [ ] `pnpm typecheck`
-- [ ] `pnpm test`
-- [ ] `pnpm build`
+- [x] `pnpm install`
+- [x] `pnpm format:check`
+- [x] `pnpm lint`
+- [x] `pnpm typecheck`
+- [x] `pnpm test`
+- [x] `pnpm build`
 - [ ] Local infrastructure health checks
-- [ ] Existing marketing site smoke test
+- [x] Existing marketing site smoke test
 
 ## Documentation
 
 - [x] Preserve the authoritative source specification.
 - [x] Create root governance files.
-- [ ] Complete product handbook.
-- [ ] Complete architecture handbook.
-- [ ] Complete API, database, security, and development handbooks.
-- [ ] Complete roadmap phases 1–6.
-- [ ] Complete traceability and Definition of Done.
+- [x] Complete product handbook.
+- [x] Complete architecture handbook.
+- [x] Complete API, database, security, and development handbooks.
+- [x] Complete roadmap phases 1–6.
+- [x] Complete traceability and Definition of Done.
 - [ ] Update changelog at completion.
 
 ## Definition of Done

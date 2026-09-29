@@ -52,7 +52,7 @@ export function NetworkStory() {
       <div className="network-sticky">
         <div className="network-panel">
           <div className="panel-topline">
-            <span>NEXUS NETWORK / LIVE</span>
+            <span>NEXUS NETWORK / MODEL</span>
             <span className="live-status">
               <i /> SYSTEM NOMINAL
             </span>

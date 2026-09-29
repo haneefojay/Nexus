@@ -5,10 +5,10 @@ import { ArrowRight, ArrowUpRight } from "lucide-react";
 
 const flow = [
   ["01", "Physical asset", "Panel / tower / pump"],
-  ["02", "Signal", "Telemetry / inspection"],
+  ["02", "Inspection", "Response / evidence"],
   ["03", "NEXUS", "Spatial operating model"],
-  ["04", "Intelligence", "Risk / priority / pattern"],
-  ["05", "Action", "Dispatch / resolve / learn"],
+  ["04", "Attention", "Finding / due date / priority"],
+  ["05", "Action", "Assign / verify / report"],
 ];
 
 export function IntelligenceCTA() {

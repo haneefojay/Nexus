@@ -187,7 +187,7 @@ export function NetworkScene() {
           {selected?.status || "healthy"}
         </div>
         <strong>{selected?.name || "NX-2471"}</strong>
-        <small>Power relay · Live telemetry</small>
+        <small>Power relay · Illustrative network</small>
       </div>
     </div>
   );

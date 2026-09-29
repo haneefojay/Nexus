@@ -44,8 +44,8 @@ export function ProductDemo() {
           for the physical world.
         </h2>
         <p>
-          Explore a live operating picture. Filter the network, inspect an asset, and move from
-          signal to action without losing context.
+          Explore an illustrative operating picture. Filter the network, inspect an asset, and move
+          from inspection to action without losing context.
         </p>
       </div>
       <motion.div
@@ -95,22 +95,22 @@ export function ProductDemo() {
             <div>
               <small>ASSETS</small>
               <strong>1,284</strong>
-              <span>+12 this month</span>
+              <span>illustrative dataset</span>
             </div>
             <div>
               <small>ATTENTION REQUIRED</small>
               <strong className="warning">17</strong>
-              <span>3 high priority</span>
+              <span>illustrative dataset</span>
             </div>
             <div>
               <small>MAINTENANCE</small>
               <strong>06</strong>
-              <span>4 teams active</span>
+              <span>illustrative dataset</span>
             </div>
             <div>
               <small>OPERATIONAL</small>
               <strong>98.7%</strong>
-              <span>+0.4% / 30d</span>
+              <span>illustrative dataset</span>
             </div>
           </div>
           <div className="demo-map">
@@ -187,12 +187,12 @@ export function ProductDemo() {
                   <dd>West corridor</dd>
                 </div>
                 <div>
-                  <dt>Last signal</dt>
-                  <dd>8 sec ago</dd>
+                  <dt>Last inspection</dt>
+                  <dd>18 Sep 2026</dd>
                 </div>
                 <div>
-                  <dt>Health</dt>
-                  <dd>94.2%</dd>
+                  <dt>Condition</dt>
+                  <dd>No open finding</dd>
                 </div>
               </dl>
               <div className="signal-chart">

@@ -34,7 +34,7 @@ export function Hero() {
           }}
         >
           <span />
-          Infrastructure intelligence / Live
+          Infrastructure operations / Overview
         </motion.div>
         <motion.h1
           variants={{

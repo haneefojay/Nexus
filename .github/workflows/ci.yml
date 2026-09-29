@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, dev]
 
 permissions:
   contents: read
@@ -29,3 +29,15 @@ jobs:
       - run: pnpm test
       - run: pnpm build
       - run: pnpm audit --audit-level high
+
+  infrastructure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: cp .env.example .env
+      - run: docker compose config --quiet
+      - run: docker compose up -d --wait
+      - run: bash scripts/check-local-infrastructure.sh
+      - if: always()
+        run: docker compose down -v
