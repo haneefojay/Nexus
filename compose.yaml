@@ -41,12 +41,6 @@ services:
       - "9001:9001"
     volumes:
       - minio-data:/data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-
   mailpit:
     image: axllent/mailpit:latest
     ports:
