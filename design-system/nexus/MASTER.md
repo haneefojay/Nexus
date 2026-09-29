@@ -17,24 +17,24 @@
 
 ### Color Palette
 
-| Role | Hex | CSS Variable |
-|------|-----|--------------|
-| Primary | `#7C3AED` | `--color-primary` |
-| On Primary | `#FFFFFF` | `--color-on-primary` |
-| Secondary | `#A78BFA` | `--color-secondary` |
-| On Secondary | `#0F172A` | `--color-on-secondary` |
-| Accent/CTA | `#0891B2` | `--color-accent` |
-| On Accent/CTA | `#000000` | `--color-on-accent` |
-| Background | `#FAF5FF` | `--color-background` |
-| Foreground | `#1E1B4B` | `--color-foreground` |
-| Card | `#FFFFFF` | `--color-card` |
-| Card Foreground | `#1E1B4B` | `--color-card-foreground` |
-| Muted | `#ECEEF9` | `--color-muted` |
+| Role             | Hex       | CSS Variable               |
+| ---------------- | --------- | -------------------------- |
+| Primary          | `#7C3AED` | `--color-primary`          |
+| On Primary       | `#FFFFFF` | `--color-on-primary`       |
+| Secondary        | `#A78BFA` | `--color-secondary`        |
+| On Secondary     | `#0F172A` | `--color-on-secondary`     |
+| Accent/CTA       | `#0891B2` | `--color-accent`           |
+| On Accent/CTA    | `#000000` | `--color-on-accent`        |
+| Background       | `#FAF5FF` | `--color-background`       |
+| Foreground       | `#1E1B4B` | `--color-foreground`       |
+| Card             | `#FFFFFF` | `--color-card`             |
+| Card Foreground  | `#1E1B4B` | `--color-card-foreground`  |
+| Muted            | `#ECEEF9` | `--color-muted`            |
 | Muted Foreground | `#475569` | `--color-muted-foreground` |
-| Border | `#DDD6FE` | `--color-border` |
-| Destructive | `#DC2626` | `--color-destructive` |
-| On Destructive | `#FFFFFF` | `--color-on-destructive` |
-| Ring | `#7C3AED` | `--color-ring` |
+| Border           | `#DDD6FE` | `--color-border`           |
+| Destructive      | `#DC2626` | `--color-destructive`      |
+| On Destructive   | `#FFFFFF` | `--color-on-destructive`   |
+| Ring             | `#7C3AED` | `--color-ring`             |
 
 **Color Notes:** AI purple + cyan interactions [Accent adjusted from #06B6D4]
 
@@ -46,31 +46,32 @@
 - **Google Fonts:** [Inter + Inter](https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap)
 
 **CSS Import:**
+
 ```css
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap");
 ```
 
 ### Spacing Variables
 
-*Density: 5/10 — Standard*
+_Density: 5/10 — Standard_
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--space-xs` | `4px` / `0.25rem` | Tight gaps |
-| `--space-sm` | `8px` / `0.5rem` | Icon gaps, inline spacing |
-| `--space-md` | `16px` / `1rem` | Standard padding |
-| `--space-lg` | `24px` / `1.5rem` | Section padding |
-| `--space-xl` | `32px` / `2rem` | Large gaps |
-| `--space-2xl` | `48px` / `3rem` | Section margins |
-| `--space-3xl` | `64px` / `4rem` | Hero padding |
+| Token         | Value             | Usage                     |
+| ------------- | ----------------- | ------------------------- |
+| `--space-xs`  | `4px` / `0.25rem` | Tight gaps                |
+| `--space-sm`  | `8px` / `0.5rem`  | Icon gaps, inline spacing |
+| `--space-md`  | `16px` / `1rem`   | Standard padding          |
+| `--space-lg`  | `24px` / `1.5rem` | Section padding           |
+| `--space-xl`  | `32px` / `2rem`   | Large gaps                |
+| `--space-2xl` | `48px` / `3rem`   | Section margins           |
+| `--space-3xl` | `64px` / `4rem`   | Hero padding              |
 
 ### Shadow Depths
 
-| Level | Value | Usage |
-|-------|-------|-------|
-| `--shadow-sm` | `0 1px 2px rgba(0,0,0,0.05)` | Subtle lift |
-| `--shadow-md` | `0 4px 6px rgba(0,0,0,0.1)` | Cards, buttons |
-| `--shadow-lg` | `0 10px 15px rgba(0,0,0,0.1)` | Modals, dropdowns |
+| Level         | Value                          | Usage                       |
+| ------------- | ------------------------------ | --------------------------- |
+| `--shadow-sm` | `0 1px 2px rgba(0,0,0,0.05)`   | Subtle lift                 |
+| `--shadow-md` | `0 4px 6px rgba(0,0,0,0.1)`    | Cards, buttons              |
+| `--shadow-lg` | `0 10px 15px rgba(0,0,0,0.1)`  | Modals, dropdowns           |
 | `--shadow-xl` | `0 20px 25px rgba(0,0,0,0.15)` | Hero images, featured cards |
 
 ---
@@ -82,7 +83,7 @@
 ```css
 /* Primary Button */
 .btn-primary {
-  background: #0891B2;
+  background: #0891b2;
   color: #000000;
   padding: 12px 24px;
   border-radius: 8px;
@@ -99,8 +100,8 @@
 /* Secondary Button */
 .btn-secondary {
   background: transparent;
-  color: #7C3AED;
-  border: 2px solid #7C3AED;
+  color: #7c3aed;
+  border: 2px solid #7c3aed;
   padding: 12px 24px;
   border-radius: 8px;
   font-weight: 600;
@@ -113,7 +114,7 @@
 
 ```css
 .card {
-  background: #FAF5FF;
+  background: #faf5ff;
   border-radius: 12px;
   padding: 24px;
   box-shadow: var(--shadow-md);
@@ -132,16 +133,16 @@
 ```css
 .input {
   padding: 12px 16px;
-  border: 1px solid #E2E8F0;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
   font-size: 16px;
   transition: border-color 200ms ease;
 }
 
 .input:focus {
-  border-color: #7C3AED;
+  border-color: #7c3aed;
   outline: none;
-  box-shadow: 0 0 0 3px #7C3AED20;
+  box-shadow: 0 0 0 3px #7c3aed20;
 }
 ```
 
@@ -190,7 +191,9 @@
 **Page Transition** (Complex) — Trigger: route change | Duration: 500-800ms | Easing: `expo.inOut`
 
 ```js
-const state = Flip.getState('.hero-image'); navigate(); Flip.from(state, { duration: 0.6, ease: 'expo.inOut', absolute: true, zIndex: 100 });
+const state = Flip.getState(".hero-image");
+navigate();
+Flip.from(state, { duration: 0.6, ease: "expo.inOut", absolute: true, zIndex: 100 });
 ```
 
 **Framework notes:** Requires the GSAP Flip plugin; the 'from' and 'to' route must render the same element with a shared data-flip-id; Use matchMedia('(prefers-reduced-motion: reduce)') to skip non-essential motion and render the final state immediately

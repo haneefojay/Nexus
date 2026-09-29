@@ -1,31 +1,29 @@
 {
-  "name": "nexus-infrastructure-intelligence",
-  "version": "1.0.0",
+  "name": "nexus",
+  "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+  "packageManager": "pnpm@12.8.1",
+  "engines": {
+    "node": ">=24.0.0"
   },
-  "dependencies": {
-    "@react-three/drei": "^10.7.7",
-    "@react-three/fiber": "^9.3.0",
-    "framer-motion": "^12.23.22",
-    "lucide-react": "^0.468.0",
-    "next": "^15.5.4",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "three": "^0.180.0"
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "test:e2e": "playwright test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "audit:dependencies": "pnpm audit --audit-level high"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2",
-    "@types/react": "^19.0.6",
-    "@types/react-dom": "^19.0.2",
-    "@types/three": "^0.180.0",
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.17",
-    "typescript": "^5.7.2"
+    "@playwright/test": "^1.55.1",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.7",
+    "prettier": "^3.6.2",
+    "turbo": "2.11.5",
+    "typescript": "^5.9.2",
+    "vitest": "4.1.11"
   }
 }
