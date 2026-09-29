@@ -1,6 +1,8 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
+import * as schema from "./schema/index.js";
+
 export * from "./schema/index.js";
 
 export function createDatabase(databaseUrl: string) {
@@ -13,7 +15,7 @@ export function createDatabase(databaseUrl: string) {
 
   return {
     client,
-    db: drizzle(client),
+    db: drizzle(client, { schema }),
     async close(): Promise<void> {
       await client.end({ timeout: 5 });
     },

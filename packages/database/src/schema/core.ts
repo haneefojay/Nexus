@@ -68,7 +68,8 @@ export const users = pgTable(
     id: id(),
     email: text("email").notNull(),
     name: text("name").notNull(),
-    avatarUrl: text("avatar_url"),
+    image: text("avatar_url"),
+    emailVerified: boolean("email_verified").notNull().default(false),
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
     active: boolean("active").notNull().default(true),
     createdAt: createdAt(),
@@ -79,6 +80,73 @@ export const users = pgTable(
     check("users_email_normalized", sql`${table.email} = lower(trim(${table.email}))`),
   ],
 );
+
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: id(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    token: text("token").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    uniqueIndex("sessions_token_unique").on(table.token),
+    index("sessions_user_expires_idx").on(table.userId, table.expiresAt),
+  ],
+);
+
+export const accounts = pgTable(
+  "accounts",
+  {
+    id: id(),
+    accountId: text("account_id").notNull(),
+    providerId: text("provider_id").notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    idToken: text("id_token"),
+    accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at", { withTimezone: true }),
+    scope: text("scope"),
+    password: text("password"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    unique("accounts_provider_account_unique").on(table.providerId, table.accountId),
+    index("accounts_user_idx").on(table.userId),
+  ],
+);
+
+export const verifications = pgTable(
+  "verifications",
+  {
+    id: id(),
+    identifier: text("identifier").notNull(),
+    value: text("value").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    index("verifications_identifier_idx").on(table.identifier),
+    index("verifications_expires_idx").on(table.expiresAt),
+  ],
+);
+
+export const rateLimits = pgTable("rate_limits", {
+  key: text("key").primaryKey(),
+  count: integer("count").notNull(),
+  lastRequest: bigint("last_request", { mode: "number" }).notNull(),
+});
 
 export const organizations = pgTable(
   "organizations",

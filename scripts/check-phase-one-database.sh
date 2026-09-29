@@ -18,7 +18,16 @@ DECLARE
   asset_a uuid := uuidv7();
   asset_b uuid := uuidv7();
 BEGIN
-  INSERT INTO users (id, email, name) VALUES (owner_id, 'phase1@nexus.local', 'Phase One');
+  INSERT INTO users (id, email, name, email_verified) VALUES (owner_id, 'phase1@nexus.local', 'Phase One', true);
+  INSERT INTO sessions (user_id, token, expires_at)
+  VALUES (owner_id, 'phase-one-session-token', now() + interval '1 hour');
+  INSERT INTO accounts (account_id, provider_id, user_id, password)
+  VALUES ('phase1@nexus.local', 'credential', owner_id, '$argon2id$test');
+  INSERT INTO verifications (identifier, value, expires_at)
+  VALUES ('phase1@nexus.local', 'hashed-token', now() + interval '1 hour');
+  INSERT INTO rate_limits (key, count, last_request)
+  VALUES ('phase-one-rate-limit', 1, 1790724000000);
+
   INSERT INTO organizations (id, name, slug, timezone) VALUES
     (org_a, 'Organization A', 'phase-one-a', 'Africa/Lagos'),
     (org_b, 'Organization B', 'phase-one-b', 'UTC');
@@ -74,6 +83,12 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'assets_no_hierarchy_cycle') THEN
     RAISE EXCEPTION 'asset hierarchy trigger missing';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'sessions_token_unique') THEN
+    RAISE EXCEPTION 'auth session token uniqueness missing';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'rate_limits') THEN
+    RAISE EXCEPTION 'database-backed auth rate limit storage missing';
   END IF;
 END
 $$;
