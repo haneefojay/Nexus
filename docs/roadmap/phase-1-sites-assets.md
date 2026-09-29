@@ -4,6 +4,22 @@
 
 Establish the tenant-safe spatial asset register and the authentication/organization foundation.
 
+## Status
+
+**IN PROGRESS** — started with the tenant-safe domain and persistence foundation.
+
+## Progress
+
+- [x] Establish organization, membership, invitation, site, asset type, asset, import, and activity-event schema.
+- [x] Add UUIDv7, tenant-scoped uniqueness, PostGIS, archive consistency, append-only audit, active-owner, asset-type scope, and hierarchy-cycle constraints.
+- [x] Add lifecycle, fixed-role authorization, owner invariant, hierarchy, and import-row domain policies with unit tests.
+- [x] Add Docker-backed migration and database-constraint checks to CI.
+- [ ] Integrate Better Auth and authentication routes.
+- [ ] Implement organization and membership application/API modules.
+- [ ] Implement site, asset type, asset, map, search, and import application/API modules.
+- [ ] Build authenticated web/PWA screens backed by the real API.
+- [ ] Complete Phase 1 integration, E2E, security, accessibility, and load gates.
+
 ## Scope
 
 - Better Auth integration, sessions, verification, reset

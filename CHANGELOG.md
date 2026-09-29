@@ -6,6 +6,10 @@ All notable changes to this project will be documented here.
 
 ### Added
 
+- Phase 1 tenant-safe core schema for organizations, memberships, invitations, sites, asset types, assets, imports, and immutable activity events.
+- Phase 1 domain policies and tests for lifecycles, fixed-role authorization, active-owner invariants, asset hierarchy, and import-row validation.
+- Docker-backed Phase 1 migration checks for PostGIS indexes, tenant asset-type scope, cycle prevention, owner retention, and append-only audit history.
+
 - Phase 0 pnpm/Turborepo monorepo with preserved Next.js marketing site, NestJS/Fastify API shell, BullMQ worker shell, and shared package boundaries.
 - Authoritative source archive and complete product, architecture, API, database, security, development, roadmap, ADR, and traceability handbooks.
 - Stable functional/non-functional requirement IDs, domain rules, edge-case catalogue, phase/test mappings, and Definition of Done.
