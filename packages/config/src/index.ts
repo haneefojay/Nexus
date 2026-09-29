@@ -18,6 +18,8 @@ export const serverEnvironmentSchema = z.object({
 
 export type ServerEnvironment = z.infer<typeof serverEnvironmentSchema>;
 
-export function parseServerEnvironment(input: NodeJS.ProcessEnv = process.env): ServerEnvironment {
+export function parseServerEnvironment(
+  input: Record<string, string | undefined>,
+): ServerEnvironment {
   return serverEnvironmentSchema.parse(input);
 }

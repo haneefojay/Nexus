@@ -19,5 +19,5 @@ export declare const serverEnvironmentSchema: z.ZodObject<{
     SMTP_PORT: z.ZodCoercedNumber<unknown>;
 }, z.core.$strip>;
 export type ServerEnvironment = z.infer<typeof serverEnvironmentSchema>;
-export declare function parseServerEnvironment(input?: NodeJS.ProcessEnv): ServerEnvironment;
+export declare function parseServerEnvironment(input: Record<string, string | undefined>): ServerEnvironment;
 //# sourceMappingURL=index.d.ts.map

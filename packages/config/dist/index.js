@@ -14,7 +14,7 @@ export const serverEnvironmentSchema = z.object({
     SMTP_HOST: z.string().min(1),
     SMTP_PORT: z.coerce.number().int().min(1).max(65_535),
 });
-export function parseServerEnvironment(input = process.env) {
+export function parseServerEnvironment(input) {
     return serverEnvironmentSchema.parse(input);
 }
 //# sourceMappingURL=index.js.map
