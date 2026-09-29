@@ -87,8 +87,11 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'sessions_token_unique') THEN
     RAISE EXCEPTION 'auth session token uniqueness missing';
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'rate_limits') THEN
-    RAISE EXCEPTION 'database-backed auth rate limit storage missing';
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'rate_limits' AND column_name = 'id' AND is_nullable = 'NO'
+  ) THEN
+    RAISE EXCEPTION 'database-backed auth rate limit identifier missing';
   END IF;
 END
 $$;

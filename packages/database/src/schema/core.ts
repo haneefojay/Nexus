@@ -142,11 +142,16 @@ export const verifications = pgTable(
   ],
 );
 
-export const rateLimits = pgTable("rate_limits", {
-  key: text("key").primaryKey(),
-  count: integer("count").notNull(),
-  lastRequest: bigint("last_request", { mode: "number" }).notNull(),
-});
+export const rateLimits = pgTable(
+  "rate_limits",
+  {
+    id: id(),
+    key: text("key").notNull(),
+    count: integer("count").notNull(),
+    lastRequest: bigint("last_request", { mode: "number" }).notNull(),
+  },
+  (table) => [uniqueIndex("rate_limits_key_unique").on(table.key)],
+);
 
 export const organizations = pgTable(
   "organizations",
