@@ -28,6 +28,7 @@ All notable changes to this project will be documented here.
 
 - Added threat model, tenant-isolation, file-security, incident-response, dependency-audit, session, idempotency, and cross-tenant testing requirements.
 - Dependency audit reports no known vulnerabilities at Phase 0 validation.
+- GitHub Actions quality and Docker infrastructure gates pass on the completed Phase 0 baseline.
 
 ### Deprecated
 

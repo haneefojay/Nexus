@@ -26,7 +26,12 @@ ADR-0001 through ADR-0015 record every locked decision from product boundary thr
 
 ## Phase status
 
-Final status is set after the `dev` branch quality and infrastructure jobs pass.
+```text
+Phase 0 — COMPLETE
+Phase 1 — READY TO START
+```
+
+GitHub Actions run `36643465993` passed the quality and Docker infrastructure jobs on commit `469e23520a5a15f1f25abd68b1b4327cc612b72b`.
 
 ## Important warnings
 

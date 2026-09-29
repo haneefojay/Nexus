@@ -41,7 +41,7 @@ Business features are explicitly excluded.
 - [x] `pnpm typecheck`
 - [x] `pnpm test`
 - [x] `pnpm build`
-- [ ] Local infrastructure health checks
+- [x] Local infrastructure health checks
 - [x] Existing marketing site smoke test
 
 ## Documentation
@@ -53,8 +53,8 @@ Business features are explicitly excluded.
 - [x] Complete API, database, security, and development handbooks.
 - [x] Complete roadmap phases 1–6.
 - [x] Complete traceability and Definition of Done.
-- [ ] Update changelog at completion.
+- [x] Update changelog at completion.
 
 ## Definition of Done
 
-Phase 0 is complete only when every requirement in section 73 of the authoritative Phase 0 directive is satisfied. Until then, the roadmap must remain at Phase 0.
+**Phase 0 — COMPLETE.** Every requirement in section 73 of the authoritative Phase 0 directive is satisfied. GitHub Actions run `36643465993` validates both quality and Docker infrastructure jobs.
