@@ -129,7 +129,6 @@ export function createNexusAuth(options: CreateNexusAuthOptions) {
     rateLimit: {
       enabled: true,
       storage: "database",
-      modelName: "rateLimits",
       window: 60,
       max: 100,
       customRules: {
