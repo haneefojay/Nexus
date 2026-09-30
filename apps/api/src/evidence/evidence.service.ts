@@ -6,6 +6,7 @@ import {
   evidence,
   evidenceUploadGrants,
   inspectionFindings,
+  inspectionRuns,
   storageObjects,
   type createDatabase,
 } from "@nexus/database";
@@ -29,7 +30,12 @@ export class EvidenceService {
   ) {}
 
   async authorize(context: TenantContext, input: EvidenceUploadAuthorizeInput) {
-    await this.assertTarget(context.organizationId, input.targetType, input.targetId);
+    await this.assertTarget(
+      context.organizationId,
+      input.targetType,
+      input.targetId,
+      context.userId,
+    );
     const presigned = await this.storage.createAuthorizedUpload({
       organizationId: context.organizationId,
       actorId: context.userId,
@@ -85,7 +91,12 @@ export class EvidenceService {
     }
     if (grant.status !== "ISSUED" || grant.expiresAt < new Date())
       throw new ConflictException("Upload authorization is no longer valid");
-    await this.assertTarget(context.organizationId, grant.targetType, grant.targetId);
+    await this.assertTarget(
+      context.organizationId,
+      grant.targetType,
+      grant.targetId,
+      context.userId,
+    );
     const actual = await this.storage.headObject(grant.objectKey);
     if (!actual) throw new BadRequestException("Uploaded evidence is not available");
     const prefix = await this.storage.readObjectPrefix(grant.objectKey, 16);
@@ -175,9 +186,23 @@ export class EvidenceService {
 
   private async assertTarget(
     organizationId: string,
-    targetType: "FINDING" | "CORRECTIVE_ACTION",
+    targetType: "FINDING" | "CORRECTIVE_ACTION" | "INSPECTION_RUN",
     targetId: string,
+    executingUserId?: string,
   ) {
+    if (targetType === "INSPECTION_RUN") {
+      const [run] = await this.db
+        .select({ assignedTo: inspectionRuns.assignedTo, status: inspectionRuns.status })
+        .from(inspectionRuns)
+        .where(
+          and(eq(inspectionRuns.id, targetId), eq(inspectionRuns.organizationId, organizationId)),
+        );
+      if (!run || (executingUserId && run.assignedTo !== executingUserId))
+        throw new NotFoundException("Evidence target not found");
+      if (executingUserId && !["ASSIGNED", "READY", "IN_PROGRESS"].includes(run.status))
+        throw new ConflictException("Inspection evidence can no longer be added");
+      return;
+    }
     const table = targetType === "FINDING" ? inspectionFindings : correctiveActions;
     const [target] = await this.db
       .select({ id: table.id })

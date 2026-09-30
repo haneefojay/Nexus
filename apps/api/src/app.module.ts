@@ -22,6 +22,8 @@ import { EvidenceController } from "./evidence/evidence.controller.js";
 import { EvidenceService } from "./evidence/evidence.service.js";
 import { SearchController } from "./search/search.controller.js";
 import { SearchService } from "./search/search.service.js";
+import { FieldSyncController } from "./sync/field-sync.controller.js";
+import { FieldSyncService } from "./sync/field-sync.service.js";
 import {
   AUTH_TOKEN,
   DATABASE_TOKEN,
@@ -56,6 +58,7 @@ export class AppModule {
         FindingsController,
         EvidenceController,
         SearchController,
+        FieldSyncController,
       ],
       providers: [
         ReadinessService,
@@ -109,6 +112,15 @@ export class AppModule {
           provide: SearchService,
           inject: [DATABASE_TOKEN],
           useFactory: (db: AppDependencies["db"]) => new SearchService(db),
+        },
+        {
+          provide: FieldSyncService,
+          inject: [DATABASE_TOKEN, InspectionsService, EvidenceService],
+          useFactory: (
+            db: AppDependencies["db"],
+            inspections: InspectionsService,
+            evidence: EvidenceService,
+          ) => new FieldSyncService(db, inspections, evidence),
         },
       ],
     };
