@@ -4,7 +4,7 @@ import postgres from "postgres";
 import * as schema from "./schema/index.js";
 
 export * from "./schema/index.js";
-export { and, asc, count, desc, eq, ilike, inArray, isNull, ne, or, sql } from "drizzle-orm";
+export { and, asc, count, desc, eq, ilike, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
 
 export function createDatabase(databaseUrl: string) {
   const client = postgres(databaseUrl, {

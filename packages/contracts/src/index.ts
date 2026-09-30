@@ -18,6 +18,15 @@ export interface ProcessImportJob {
   organizationId: string;
   requestedBy: string;
 }
+
+export const inspectionQueueName = "nexus-inspections" as const;
+export const generateInspectionRunsJobName = "generate-inspection-runs" as const;
+
+export interface GenerateInspectionRunsJob {
+  planId?: string;
+  horizonDays: number;
+  requestedAt: string;
+}
 export const apiVersion = "v1" as const;
 
 export interface ApiErrorDetail {
