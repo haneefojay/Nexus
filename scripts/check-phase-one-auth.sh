@@ -68,4 +68,39 @@ sign_in_status=$(curl --silent --output /dev/null --write-out '%{http_code}' \
   http://localhost:3001/v1/auth/sign-in/email)
 [[ "$sign_in_status" -ge 400 ]] || { echo "Unverified account unexpectedly signed in"; exit 1; }
 
-echo "Phase 1 authentication smoke checks are healthy."
+"${psql[@]}" -c "UPDATE users SET email_verified = true, email_verified_at = now() WHERE email = 'auth-phase-one@nexus.local';" >/dev/null
+cookie_jar=$(mktemp)
+sign_in_response=$(curl --fail --silent --cookie-jar "$cookie_jar" -H 'content-type: application/json' --data '{"email":"auth-phase-one@nexus.local","password":"a-long-and-valid-password"}' http://localhost:3001/v1/auth/sign-in/email)
+user_id=$(jq -er '.user.id' <<<"$sign_in_response")
+organization=$(curl --fail --silent --cookie "$cookie_jar" -H 'content-type: application/json' --data '{"name":"Phase One Infrastructure","slug":"phase-one-infrastructure","timezone":"Africa/Lagos"}' http://localhost:3001/v1/organizations)
+organization_id=$(jq -er '.data.id' <<<"$organization")
+site=$(curl --fail --silent --cookie "$cookie_jar" -H "x-organization-id: $organization_id" -H 'content-type: application/json' --data '{"name":"Lagos West","reference":"LG-WEST","type":"SOLAR","status":"ACTIVE","latitude":6.5244,"longitude":3.3792}' http://localhost:3001/v1/sites)
+site_id=$(jq -er '.data.id' <<<"$site")
+asset_type=$(curl --fail --silent --cookie "$cookie_jar" -H "x-organization-id: $organization_id" -H 'content-type: application/json' --data '{"name":"Phase One Inverter","category":"POWER","metadataSchema":{}}' http://localhost:3001/v1/asset-types)
+asset_type_id=$(jq -er '.data.id' <<<"$asset_type")
+curl --fail --silent --cookie "$cookie_jar" -H "x-organization-id: $organization_id" -H 'content-type: application/json' --data "{\"siteId\":\"$site_id\",\"assetTypeId\":\"$asset_type_id\",\"identifier\":\"INV-CI-001\",\"name\":\"CI Inverter\",\"status\":\"ACTIVE\",\"condition\":\"GOOD\",\"latitude\":6.5244,\"longitude\":3.3792,\"metadata\":{}}" http://localhost:3001/v1/assets | jq -e '.data.id' >/dev/null
+map_count=$(curl --fail --silent --cookie "$cookie_jar" -H "x-organization-id: $organization_id" 'http://localhost:3001/v1/map/assets?west=3&south=6&east=4&north=7&zoom=9' | jq '.data.features | length')
+[[ "$map_count" -ge 1 ]] || { echo "Expected created asset in viewport"; exit 1; }
+curl --fail --silent --cookie "$cookie_jar" -H "x-organization-id: $organization_id" -H 'content-type: application/json' --data '{"email":"invitee-phase-one@nexus.local","role":"TECHNICIAN"}' http://localhost:3001/v1/invitations | jq -e '.data.role == "TECHNICIAN"' >/dev/null
+unknown_organization=$("${psql[@]}" -c 'SELECT uuidv7();')
+cross_tenant_status=$(curl --silent --output /dev/null --write-out '%{http_code}' --cookie "$cookie_jar" -H "x-organization-id: $unknown_organization" http://localhost:3001/v1/sites)
+[[ "$cross_tenant_status" == "403" ]] || { echo "Cross-tenant request was not rejected"; exit 1; }
+preview=$(curl --fail --silent --cookie "$cookie_jar" -H "x-organization-id: $organization_id" -H 'content-type: application/json' --data '{"kind":"SITE","csv":"name,type,reference\nNorth Relay,TELECOM,NORTH-RELAY"}' http://localhost:3001/v1/imports/preview)
+import_id=$(jq -er '.data.id' <<<"$preview")
+jq -e '.data.status == "READY" and .data.validRows == 1' <<<"$preview" >/dev/null
+curl --fail --silent --cookie "$cookie_jar" -H "x-organization-id: $organization_id" -X POST "http://localhost:3001/v1/imports/$import_id/confirm" >/dev/null
+worker_log=$(mktemp)
+pnpm --filter @nexus/worker exec tsx src/main.ts >"$worker_log" 2>&1 &
+worker_pid=$!
+for _ in $(seq 1 30); do
+  import_status=$("${psql[@]}" -c "SELECT status FROM import_jobs WHERE id = '$import_id';")
+  [[ "$import_status" == "COMPLETED" ]] && break
+  sleep 0.5
+done
+if [[ "$import_status" != "COMPLETED" ]]; then cat "$worker_log"; exit 1; fi
+kill "$worker_pid" 2>/dev/null || true
+wait "$worker_pid" 2>/dev/null || true
+audit_count=$("${psql[@]}" -c "SELECT count(*) FROM activity_events WHERE organization_id = '$organization_id' AND actor_user_id = '$user_id';")
+[[ "$audit_count" -ge 4 ]] || { echo "Expected immutable activity events"; exit 1; }
+rm -f "$cookie_jar" "$worker_log"
+echo "Phase 1 authentication, tenant, site, asset, map, invitation, import, and audit smoke checks are healthy."

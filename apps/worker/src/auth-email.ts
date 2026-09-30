@@ -14,18 +14,29 @@ export function renderAuthEmail(job: AuthEmailJob): {
   text: string;
   html: string;
 } {
-  const verification = job.kind === "EMAIL_VERIFICATION";
-  const action = verification ? "Verify email" : "Reset password";
-  const subject = verification ? "Verify your NEXUS email" : "Reset your NEXUS password";
-  const intro = verification
-    ? "Confirm this email address to activate your NEXUS account."
-    : "Use the secure link below to choose a new NEXUS password.";
+  const content = {
+    EMAIL_VERIFICATION: {
+      action: "Verify email",
+      subject: "Verify your NEXUS email",
+      intro: "Confirm this email address to activate your NEXUS account.",
+    },
+    PASSWORD_RESET: {
+      action: "Reset password",
+      subject: "Reset your NEXUS password",
+      intro: "Use the secure link below to choose a new NEXUS password.",
+    },
+    ORGANIZATION_INVITATION: {
+      action: "Join organization",
+      subject: "You have been invited to NEXUS",
+      intro: "An infrastructure team invited you to join its NEXUS operational workspace.",
+    },
+  }[job.kind];
   const safeName = escapeHtml(job.recipientName);
   const safeUrl = escapeHtml(job.actionUrl);
 
   return {
-    subject,
-    text: `Hello ${job.recipientName},\n\n${intro}\n\n${action}: ${job.actionUrl}\n\nIf you did not request this, you can ignore this email.`,
-    html: `<p>Hello ${safeName},</p><p>${intro}</p><p><a href="${safeUrl}">${action}</a></p><p>If you did not request this, you can ignore this email.</p>`,
+    subject: content.subject,
+    text: `Hello ${job.recipientName},\n\n${content.intro}\n\n${content.action}: ${job.actionUrl}\n\nIf you did not expect this, you can ignore this email.`,
+    html: `<p>Hello ${safeName},</p><p>${content.intro}</p><p><a href="${safeUrl}">${content.action}</a></p><p>If you did not expect this, you can ignore this email.</p>`,
   };
 }

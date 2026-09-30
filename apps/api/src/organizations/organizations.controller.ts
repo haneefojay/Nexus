@@ -4,6 +4,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   Inject,
   Post,
   Req,
@@ -13,6 +14,7 @@ import { ApiCookieAuth, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagg
 import type { FastifyRequest } from "fastify";
 
 import { AUTH_TOKEN } from "../tokens.js";
+import { RequestContextService } from "../context/request-context.service.js";
 import { OrganizationsService } from "./organizations.service.js";
 
 function toHeaders(request: FastifyRequest): Headers {
@@ -30,8 +32,16 @@ function toHeaders(request: FastifyRequest): Headers {
 export class OrganizationsController {
   constructor(
     @Inject(AUTH_TOKEN) private readonly auth: NexusAuth,
+    private readonly context: RequestContextService,
     private readonly organizationsService: OrganizationsService,
   ) {}
+
+  @Get()
+  @ApiOperation({ summary: "List organizations for the current user" })
+  async list(@Req() request: FastifyRequest) {
+    const actor = await this.context.requireActor(request);
+    return { data: await this.organizationsService.list(actor.userId) };
+  }
 
   @Post()
   @ApiOperation({ summary: "Create an organization and owner membership" })

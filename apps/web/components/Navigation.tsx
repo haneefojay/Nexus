@@ -28,7 +28,7 @@ export function Navigation() {
         ))}
       </nav>
       <div className="nav-actions">
-        <a className="sign-in" href="#demo">
+        <a className="sign-in" href="/signin">
           Sign in
         </a>
         <a className="request-access" href="#contact">
@@ -65,8 +65,8 @@ export function Navigation() {
                 {link}
               </motion.a>
             ))}
-            <a className="mobile-access" href="#contact" onClick={() => setOpen(false)}>
-              Request access <ArrowUpRight />
+            <a className="mobile-access" href="/signin" onClick={() => setOpen(false)}>
+              Sign in <ArrowUpRight />
             </a>
           </motion.div>
         )}

@@ -31,7 +31,7 @@ export interface AuthorizationContext {
 }
 
 export interface AuthEmail {
-  kind: "EMAIL_VERIFICATION" | "PASSWORD_RESET";
+  kind: "EMAIL_VERIFICATION" | "PASSWORD_RESET" | "ORGANIZATION_INVITATION";
   recipient: string;
   recipientName: string;
   actionUrl: string;

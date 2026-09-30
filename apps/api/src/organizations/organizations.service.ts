@@ -1,4 +1,11 @@
-import { activityEvents, memberships, organizations, type createDatabase } from "@nexus/database";
+import {
+  activityEvents,
+  and,
+  eq,
+  memberships,
+  organizations,
+  type createDatabase,
+} from "@nexus/database";
 import type { OrganizationCreateInput } from "@nexus/validation";
 import { ConflictException, Injectable } from "@nestjs/common";
 
@@ -41,6 +48,20 @@ export class OrganizationsService {
       }
       throw error;
     }
+  }
+
+  async list(userId: string) {
+    return this.db
+      .select({
+        id: organizations.id,
+        name: organizations.name,
+        slug: organizations.slug,
+        timezone: organizations.timezone,
+        role: memberships.role,
+      })
+      .from(memberships)
+      .innerJoin(organizations, eq(organizations.id, memberships.organizationId))
+      .where(and(eq(memberships.userId, userId), eq(memberships.status, "ACTIVE")));
   }
 }
 

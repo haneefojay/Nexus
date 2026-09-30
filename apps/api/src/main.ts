@@ -8,6 +8,9 @@ import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { FastifyAdapter, NestFastifyApplication } from "@nestjs/platform-fastify";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { importQueueName } from "@nexus/contracts";
+import { Queue } from "bullmq";
+import { parseRedisConnection } from "./infrastructure/redis-connection.js";
 
 import { AppModule } from "./app.module.js";
 import { QueuedAuthEmailDispatcher } from "./auth/auth-email-dispatcher.js";
@@ -17,6 +20,9 @@ async function bootstrap(): Promise<void> {
   const environment = parseServerEnvironment(process.env);
   const database = createDatabase(environment.DATABASE_URL);
   const emailDispatcher = new QueuedAuthEmailDispatcher(environment.REDIS_URL);
+  const importQueue = new Queue(importQueueName, {
+    connection: parseRedisConnection(environment.REDIS_URL),
+  });
   const auth = createNexusAuth({
     db: database.db,
     secret: environment.BETTER_AUTH_SECRET,
@@ -28,7 +34,13 @@ async function bootstrap(): Promise<void> {
 
   const adapter = new FastifyAdapter({ logger: true, trustProxy: true });
   const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule.register({ auth, db: database.db }),
+    AppModule.register({
+      auth,
+      db: database.db,
+      emailDispatcher,
+      importQueue,
+      webUrl: environment.WEB_URL,
+    }),
     adapter,
   );
   const fastify = adapter.getInstance();
@@ -64,7 +76,7 @@ async function bootstrap(): Promise<void> {
   const closeResources = async (): Promise<void> => {
     if (resourcesClosed) return;
     resourcesClosed = true;
-    await Promise.allSettled([emailDispatcher.close(), database.close()]);
+    await Promise.allSettled([emailDispatcher.close(), importQueue.close(), database.close()]);
   };
   process.once("SIGINT", () => void closeResources());
   process.once("SIGTERM", () => void closeResources());

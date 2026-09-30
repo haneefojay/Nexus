@@ -1,9 +1,18 @@
 import { parseServerEnvironment } from "@nexus/config";
-import { authEmailJobName, emailQueueName, type AuthEmailJob } from "@nexus/contracts";
+import {
+  authEmailJobName,
+  emailQueueName,
+  importQueueName,
+  processImportJobName,
+  type AuthEmailJob,
+  type ProcessImportJob,
+} from "@nexus/contracts";
+import { createDatabase } from "@nexus/database";
 import { Queue, Worker } from "bullmq";
 import nodemailer from "nodemailer";
 
 import { renderAuthEmail } from "./auth-email.js";
+import { processImport } from "./process-import.js";
 
 function parseRedisConnection(redisUrl: string) {
   const parsed = new URL(redisUrl);
@@ -18,6 +27,7 @@ function parseRedisConnection(redisUrl: string) {
 
 const environment = parseServerEnvironment(process.env);
 const connection = parseRedisConnection(environment.REDIS_URL);
+const database = createDatabase(environment.DATABASE_URL);
 const systemQueue = new Queue("nexus-system", { connection });
 const transporter = nodemailer.createTransport({
   host: environment.SMTP_HOST,
@@ -40,6 +50,14 @@ const emailWorker = new Worker<AuthEmailJob>(
   },
   { connection, concurrency: 5 },
 );
+const importWorker = new Worker<ProcessImportJob>(
+  importQueueName,
+  async (job) => {
+    if (job.name !== processImportJobName) throw new Error(`Unsupported import job: ${job.name}`);
+    await processImport(database.db, job.data.importJobId, job.data.organizationId);
+  },
+  { connection, concurrency: 2 },
+);
 
 let shuttingDown = false;
 
@@ -47,7 +65,12 @@ async function shutdown(signal: string): Promise<void> {
   if (shuttingDown) return;
   shuttingDown = true;
   console.info(JSON.stringify({ level: "info", service: "worker", event: "shutdown", signal }));
-  await Promise.allSettled([emailWorker.close(), systemQueue.close()]);
+  await Promise.allSettled([
+    emailWorker.close(),
+    importWorker.close(),
+    systemQueue.close(),
+    database.close(),
+  ]);
   transporter.close();
   process.exit(0);
 }
@@ -56,6 +79,7 @@ async function bootstrap(): Promise<void> {
   await Promise.all([
     systemQueue.waitUntilReady(),
     emailWorker.waitUntilReady(),
+    importWorker.waitUntilReady(),
     transporter.verify(),
   ]);
   console.info(JSON.stringify({ level: "info", service: "worker", event: "ready" }));
