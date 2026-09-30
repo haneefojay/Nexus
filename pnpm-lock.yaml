@@ -234,6 +234,9 @@ importers:
       '@nexus/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@nexus/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
       '@nexus/storage':
         specifier: workspace:*
         version: link:../../packages/storage
@@ -368,6 +371,9 @@ importers:
       '@nexus/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@nexus/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
       '@nexus/storage':
         specifier: workspace:*
         version: link:../../packages/storage
@@ -478,6 +484,18 @@ importers:
 
   packages/maps:
     devDependencies:
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: 4.1.11
+        version: 4.1.11(@types/node@24.19.0)(vite@7.3.6(@types/node@24.19.0)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.20.5))
+
+  packages/observability:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.5.2
+        version: 24.19.0
       typescript:
         specifier: ^5.9.2
         version: 5.9.3

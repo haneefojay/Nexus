@@ -72,7 +72,30 @@ export class AppModule {
         FieldSyncController,
       ],
       providers: [
-        ReadinessService,
+        {
+          provide: ReadinessService,
+          inject: [
+            DATABASE_TOKEN,
+            IMPORT_QUEUE_TOKEN,
+            INSPECTION_QUEUE_TOKEN,
+            REPORT_QUEUE_TOKEN,
+            EXPORT_QUEUE_TOKEN,
+            STORAGE_TOKEN,
+          ],
+          useFactory: (
+            db: AppDependencies["db"],
+            importQueue: Queue,
+            inspectionQueue: Queue,
+            reportQueue: Queue<GenerateInspectionReportJob>,
+            exportQueue: Queue<GenerateOperationalExportJob>,
+            storage: StorageProvider,
+          ) =>
+            new ReadinessService({
+              db,
+              queues: [importQueue, inspectionQueue, reportQueue, exportQueue],
+              storage,
+            }),
+        },
         { provide: AUTH_TOKEN, useValue: dependencies.auth },
         { provide: DATABASE_TOKEN, useValue: dependencies.db },
         { provide: EMAIL_DISPATCHER_TOKEN, useValue: dependencies.emailDispatcher },

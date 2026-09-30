@@ -65,6 +65,7 @@ export interface StorageProvider {
   readObjectPrefix(objectKey: string, bytes: number): Promise<Uint8Array>;
   createAuthorizedDownload(objectKey: string, expiresInSeconds: number): Promise<string>;
   writePrivateArtifact(request: PrivateArtifactRequest): Promise<PrivateArtifact>;
+  checkHealth(): Promise<boolean>;
   deleteObject(objectKey: string): Promise<void>;
 }
 
@@ -204,6 +205,14 @@ export class S3StorageProvider implements StorageProvider {
       }),
     );
     return { objectKey, checksum: request.checksum, size: request.body.byteLength };
+  }
+  async checkHealth(): Promise<boolean> {
+    try {
+      await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }));
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   async deleteObject(objectKey: string): Promise<void> {
