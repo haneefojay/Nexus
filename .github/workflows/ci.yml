@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main, dev]
+    branches: [main, dev, "phase-2/**"]
 
 permissions:
   contents: read
@@ -55,6 +55,8 @@ jobs:
           DATABASE_URL: postgresql://nexus:nexus_local_only@localhost:5432/nexus
       - run: bash scripts/check-phase-one-database.sh
       - run: bash scripts/check-phase-one-auth.sh
+      - run: bash scripts/check-phase-two-database.sh
+      - run: bash scripts/check-phase-two-inspections.sh
       - if: failure()
         run: docker compose ps -a && docker compose logs --no-color
       - if: always()
