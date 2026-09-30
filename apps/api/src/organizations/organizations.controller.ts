@@ -9,7 +9,6 @@ import {
   Post,
   Req,
   UnauthorizedException,
-  InternalServerErrorException,
 } from "@nestjs/common";
 import { ApiCookieAuth, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import type { FastifyRequest } from "fastify";
@@ -50,32 +49,42 @@ export class OrganizationsController {
   @ApiResponse({ status: 400, description: "Invalid organization details" })
   @ApiResponse({ status: 401, description: "Verified session required" })
   async create(@Req() request: FastifyRequest, @Body() body: unknown) {
-    let session;
+    let phase = "session";
     try {
-      session = await this.auth.api.getSession({ headers: toHeaders(request) });
+      const session = await this.auth.api.getSession({ headers: toHeaders(request) });
+      if (!session?.user.emailVerified) {
+        throw new UnauthorizedException("A verified session is required");
+      }
+
+      phase = "validation";
+      const parsed = organizationCreateSchema.safeParse(body);
+      if (!parsed.success) {
+        throw new BadRequestException({
+          code: "INVALID_ORGANIZATION",
+          message: "Organization details are invalid",
+          details: parsed.error.issues.map((issue) => ({
+            field: issue.path.join("."),
+            reason: issue.message,
+          })),
+        });
+      }
+
+      phase = "persistence";
+      return { data: await this.organizationsService.create(parsed.data, session.user.id) };
     } catch (error) {
       if (process.env.NODE_ENV === "test") {
         const name = error instanceof Error ? error.name : "UnknownError";
-        throw new InternalServerErrorException(`Session resolution failed (${name})`);
+        const code =
+          typeof error === "object" &&
+          error !== null &&
+          "code" in error &&
+          typeof error.code === "string" &&
+          /^[A-Z0-9]{5}$/.test(error.code)
+            ? error.code
+            : "none";
+        console.error(`NEXUS_PHASE_ONE_DIAGNOSTIC phase=${phase} class=${name} code=${code}`);
       }
       throw error;
     }
-    if (!session?.user.emailVerified) {
-      throw new UnauthorizedException("A verified session is required");
-    }
-
-    const parsed = organizationCreateSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new BadRequestException({
-        code: "INVALID_ORGANIZATION",
-        message: "Organization details are invalid",
-        details: parsed.error.issues.map((issue) => ({
-          field: issue.path.join("."),
-          reason: issue.message,
-        })),
-      });
-    }
-
-    return { data: await this.organizationsService.create(parsed.data, session.user.id) };
   }
 }

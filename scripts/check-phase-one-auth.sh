@@ -78,8 +78,9 @@ organization_status=$(tail -n 1 <<<"$organization_response")
 organization=$(sed '$d' <<<"$organization_response")
 if [[ "$organization_status" -lt 200 || "$organization_status" -ge 300 ]]; then
   organization_error=$(jq -r '(.message // .error // "unknown") | tostring' <<<"$organization" 2>/dev/null || echo "unknown")
+  safe_diagnostic=$(grep -E 'NEXUS_PHASE_ONE_DIAGNOSTIC' "$log_file" | tail -n 1 || true)
   api_error=$(jq -Rr 'fromjson? | select((.level // 0) >= 50) | (.err.message // .msg // empty)' "$log_file" 2>/dev/null | tail -n 1)
-  echo "::error title=Organization smoke request failed::HTTP $organization_status: ${organization_error:-$api_error}"
+  echo "::error title=Organization smoke request failed::HTTP $organization_status: ${safe_diagnostic:-${organization_error:-$api_error}}"
   exit 1
 fi
 organization_id=$(jq -er '.data.id' <<<"$organization")
