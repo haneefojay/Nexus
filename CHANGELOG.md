@@ -11,7 +11,7 @@ All notable changes to this project will be documented here.
 - Docker-backed Phase 1 migration checks for PostGIS indexes, tenant asset-type scope, cycle prevention, owner retention, and append-only audit history.
 - Better Auth email/password routes with Argon2id credentials, verified-email enforcement, revocable database sessions, database-backed rate limits, and queued verification/reset email delivery.
 - Authenticated organization creation with atomic owner membership and immutable creation audit event.
-- CI authentication smoke coverage for persisted sign-up, Argon2id hashing, verification records, and rejection of unverified sign-in.
+- CI authentication smoke coverage for persisted sign-up, Argon2id hashing, queued verification email, and rejection of unverified sign-in.
 
 - Phase 0 pnpm/Turborepo monorepo with preserved Next.js marketing site, NestJS/Fastify API shell, BullMQ worker shell, and shared package boundaries.
 - Authoritative source archive and complete product, architecture, API, database, security, development, roadmap, ADR, and traceability handbooks.

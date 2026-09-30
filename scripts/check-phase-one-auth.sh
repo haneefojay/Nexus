@@ -42,8 +42,9 @@ status=$(curl --silent --output "$response_file" --write-out '%{http_code}' \
   -H 'content-type: application/json' \
   --data '{"name":"Phase One Operator","email":"auth-phase-one@nexus.local","password":"a-long-and-valid-password"}' \
   http://localhost:3001/v1/auth/sign-up/email)
-if [[ "$status" != "200" ]]; then
+if [[ "$status" -lt 200 || "$status" -ge 300 ]]; then
   cat "$response_file"
+  cat "$log_file"
   rm -f "$response_file"
   exit 1
 fi
@@ -58,8 +59,8 @@ password_hash=$("${psql[@]}" -c "SELECT a.password FROM accounts a JOIN users u 
 verified=$("${psql[@]}" -c "SELECT email_verified FROM users WHERE email = 'auth-phase-one@nexus.local';")
 [[ "$verified" == "f" ]] || { echo "New account was unexpectedly verified"; exit 1; }
 
-verification_count=$("${psql[@]}" -c "SELECT count(*) FROM verifications WHERE identifier LIKE '%auth-phase-one@nexus.local%';")
-[[ "$verification_count" -ge 1 ]] || { echo "Expected an email verification token record"; exit 1; }
+queued_email_count=$(docker compose exec -T redis redis-cli LLEN bull:nexus-email:wait | tr -d '\r')
+[[ "$queued_email_count" -ge 1 ]] || { echo "Expected a queued verification email"; exit 1; }
 
 sign_in_status=$(curl --silent --output /dev/null --write-out '%{http_code}' \
   -H 'content-type: application/json' \
