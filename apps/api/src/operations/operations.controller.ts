@@ -12,6 +12,7 @@ import {
   Body,
   Controller,
   Get,
+  Inject,
   Param,
   Patch,
   Post,
@@ -29,8 +30,8 @@ import { OperationsService } from "./operations.service.js";
 @Controller("v1")
 export class OperationsController {
   constructor(
-    private readonly context: RequestContextService,
-    private readonly service: OperationsService,
+    @Inject(RequestContextService) private readonly context: RequestContextService,
+    @Inject(OperationsService) private readonly service: OperationsService,
   ) {}
 
   @Get("sites")

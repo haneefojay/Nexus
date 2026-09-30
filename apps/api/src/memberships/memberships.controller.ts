@@ -4,6 +4,7 @@ import {
   Body,
   Controller,
   Get,
+  Inject,
   Param,
   Patch,
   Post,
@@ -20,8 +21,8 @@ import { MembershipsService } from "./memberships.service.js";
 @Controller("v1")
 export class MembershipsController {
   constructor(
-    private readonly context: RequestContextService,
-    private readonly service: MembershipsService,
+    @Inject(RequestContextService) private readonly context: RequestContextService,
+    @Inject(MembershipsService) private readonly service: MembershipsService,
   ) {}
 
   @Get("members")

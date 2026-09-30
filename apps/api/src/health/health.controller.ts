@@ -1,4 +1,4 @@
-import { Controller, Get, ServiceUnavailableException } from "@nestjs/common";
+import { Controller, Get, Inject, ServiceUnavailableException } from "@nestjs/common";
 import { ApiOkResponse, ApiServiceUnavailableResponse, ApiTags } from "@nestjs/swagger";
 
 import { ReadinessService, type ReadinessResult } from "./readiness.service.js";
@@ -6,7 +6,7 @@ import { ReadinessService, type ReadinessResult } from "./readiness.service.js";
 @ApiTags("system")
 @Controller()
 export class HealthController {
-  constructor(private readonly readiness: ReadinessService) {}
+  constructor(@Inject(ReadinessService) private readonly readiness: ReadinessService) {}
 
   @Get("health")
   @ApiOkResponse({ description: "API process is alive." })

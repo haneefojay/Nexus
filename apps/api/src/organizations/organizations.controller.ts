@@ -32,8 +32,8 @@ function toHeaders(request: FastifyRequest): Headers {
 export class OrganizationsController {
   constructor(
     @Inject(AUTH_TOKEN) private readonly auth: NexusAuth,
-    private readonly context: RequestContextService,
-    private readonly organizationsService: OrganizationsService,
+    @Inject(RequestContextService) private readonly context: RequestContextService,
+    @Inject(OrganizationsService) private readonly organizationsService: OrganizationsService,
   ) {}
 
   @Get()
