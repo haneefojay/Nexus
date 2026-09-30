@@ -72,6 +72,17 @@ const inspectionWorker = new Worker<GenerateInspectionRunsJob>(
   },
   { connection, concurrency: 2 },
 );
+inspectionWorker.on("failed", (job, error) => {
+  console.error(
+    JSON.stringify({
+      level: "error",
+      service: "worker",
+      event: "inspection_job_failed",
+      jobId: job?.id,
+      message: error.message,
+    }),
+  );
+});
 
 let shuttingDown = false;
 
