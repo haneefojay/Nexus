@@ -6,7 +6,7 @@ Establish the tenant-safe spatial asset register and the authentication/organiza
 
 ## Status
 
-**IN PROGRESS** — tenant-safe persistence and the first authenticated application slice are implemented.
+**COMPLETE** — the authenticated, tenant-safe spatial asset register and operational application slice are implemented and validated.
 
 ## Progress
 
@@ -16,10 +16,10 @@ Establish the tenant-safe spatial asset register and the authentication/organiza
 - [x] Add Docker-backed migration and database-constraint checks to CI.
 - [x] Integrate Better Auth routes with verified email/password, Argon2id, revocable database sessions, reset flow, database-backed throttling, and queued email delivery.
 - [x] Add authenticated, atomic organization creation with owner membership and immutable audit history.
-- [ ] Implement invitation and membership-management application/API modules.
-- [ ] Implement site, asset type, asset, map, search, and import application/API modules.
-- [ ] Build authenticated web/PWA screens backed by the real API.
-- [ ] Complete Phase 1 integration, E2E, security, accessibility, and load gates.
+- [x] Implement invitation and membership-management application/API modules.
+- [x] Implement site, asset type, asset, map, search, and import application/API modules.
+- [x] Build authenticated web/PWA screens backed by the real API.
+- [x] Complete Phase 1 integration, E2E, security, accessibility, and performance gates.
 
 ## Scope
 
@@ -48,9 +48,9 @@ Tenant leaks, invalid spatial data, hierarchy cycles, large map payloads, partia
 
 ## Definition of Done
 
-- [ ] User can sign up, verify, sign in, and create an organization.
-- [ ] Owner can invite and manage fixed-role members.
-- [ ] Authorized users can create/import and archive sites and assets.
-- [ ] Assets render through viewport-based map queries.
-- [ ] Organization-scoped uniqueness and tenant isolation are enforced and tested.
-- [ ] Real API/database data drives all authenticated screens.
+- [x] User can sign up, verify, sign in, and create an organization.
+- [x] Owner can invite and manage fixed-role members.
+- [x] Authorized users can create/import and archive sites and assets.
+- [x] Assets render through viewport-based map queries.
+- [x] Organization-scoped uniqueness and tenant isolation are enforced and tested.
+- [x] Real API/database data drives all authenticated screens.

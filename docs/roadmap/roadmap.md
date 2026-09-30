@@ -1,14 +1,14 @@
 # NEXUS Delivery Roadmap
 
-**Current Phase: 1**  
-**Status: Phase 1 — IN PROGRESS**  
-**Next Gate: Phase 1 Definition of Done**
+**Current Phase: 2**  
+**Status: Phase 2 — READY TO START**  
+**Next Gate: Phase 2 Definition of Done**
 
 | Phase                     | Goal                                                                                                    | Status      |
 | ------------------------- | ------------------------------------------------------------------------------------------------------- | ----------- |
 | 0 — Foundation            | Establish source of truth, monorepo, tooling, architecture, CI, tests, and local infrastructure         | Complete    |
-| 1 — Sites & Assets        | Deliver authentication, organizations, memberships, sites, assets, imports, and spatial foundation      | In progress |
-| 2 — Inspections           | Deliver templates, plans, runs, assignment, execution, and due/overdue lifecycle                        | Not started |
+| 1 — Sites & Assets        | Deliver authentication, organizations, memberships, sites, assets, imports, and spatial foundation      | Complete    |
+| 2 — Inspections           | Deliver templates, plans, runs, assignment, execution, and due/overdue lifecycle                        | Ready       |
 | 3 — Findings & Actions    | Deliver findings, corrective actions, evidence, verification, history, and notifications                | Not started |
 | 4 — Offline Field         | Deliver PWA field execution, IndexedDB, evidence queue, idempotent sync, and recovery                   | Not started |
 | 5 — Reporting & Hardening | Deliver reports, exports, accessibility, observability, security, performance, and deployment hardening | Not started |

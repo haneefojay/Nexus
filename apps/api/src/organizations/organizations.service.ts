@@ -7,7 +7,7 @@ import {
   type createDatabase,
 } from "@nexus/database";
 import type { OrganizationCreateInput } from "@nexus/validation";
-import { ConflictException, Injectable, InternalServerErrorException } from "@nestjs/common";
+import { ConflictException, Injectable } from "@nestjs/common";
 
 @Injectable()
 export class OrganizationsService {
@@ -45,11 +45,6 @@ export class OrganizationsService {
     } catch (error) {
       if (isUniqueViolation(error)) {
         throw new ConflictException("Organization could not be created with those details");
-      }
-      if (process.env.NODE_ENV === "test") {
-        throw new InternalServerErrorException(
-          `Organization persistence failed (${databaseErrorCode(error)})`,
-        );
       }
       throw error;
     }
