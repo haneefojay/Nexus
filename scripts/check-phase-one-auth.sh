@@ -77,7 +77,8 @@ organization_response=$(curl --silent --cookie "$cookie_jar" -H 'content-type: a
 organization_status=$(tail -n 1 <<<"$organization_response")
 organization=$(sed '$d' <<<"$organization_response")
 if [[ "$organization_status" -lt 200 || "$organization_status" -ge 300 ]]; then
-  echo "::error title=Organization smoke request failed::HTTP $organization_status"
+  organization_error=$(jq -r '(.message // .error // "unknown") | tostring' <<<"$organization" 2>/dev/null || echo "unknown")
+  echo "::error title=Organization smoke request failed::HTTP $organization_status: $organization_error"
   exit 1
 fi
 organization_id=$(jq -er '.data.id' <<<"$organization")
