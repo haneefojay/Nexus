@@ -24,6 +24,7 @@ import { api } from "@/lib/api";
 
 import { MapView } from "./map-view";
 import { InspectionsWorkspace } from "./inspections-workspace";
+import { FindingsWorkspace, GlobalSearch } from "./findings-workspace";
 
 type Organization = { id: string; name: string; role: string; slug: string };
 type Site = {
@@ -51,6 +52,8 @@ type View =
   | "inspections"
   | "templates"
   | "plans"
+  | "findings"
+  | "search"
   | "sites"
   | "assets"
   | "map"
@@ -63,6 +66,8 @@ const navigation: { id: View; label: string; icon: typeof Activity }[] = [
   { id: "inspections", label: "Inspection runs", icon: FileCheck2 },
   { id: "templates", label: "Templates", icon: ClipboardCheck },
   { id: "plans", label: "Plans & schedules", icon: CalendarDays },
+  { id: "findings", label: "Findings & actions", icon: Activity },
+  { id: "search", label: "Global search", icon: Search },
   { id: "sites", label: "Sites", icon: Building2 },
   { id: "assets", label: "Assets", icon: Database },
   { id: "map", label: "Network map", icon: Map },
@@ -231,6 +236,10 @@ export default function OperationsPage() {
             sites={sites}
           />
         )}
+        {view === "findings" && (
+          <FindingsWorkspace organizationId={organizationId} members={members} />
+        )}
+        {view === "search" && <GlobalSearch organizationId={organizationId} />}
         {view === "sites" && (
           <SitesView organizationId={organizationId} sites={sites} onDone={load} />
         )}

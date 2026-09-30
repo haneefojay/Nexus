@@ -48,13 +48,79 @@ button {
 }
 
 input,
-select {
+select,
+textarea {
   color: var(--paper);
   background: rgba(233, 238, 233, 0.035);
   border: 1px solid var(--line);
   border-radius: 0;
   min-height: 44px;
   padding: 0 13px;
+}
+textarea {
+  min-height: 96px;
+  padding: 12px 13px;
+  resize: vertical;
+}
+
+.phase-three-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(340px, 1.1fr);
+  gap: 18px;
+}
+.filter-row,
+.command-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.finding-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 20px;
+}
+.finding-card {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  border: 1px solid var(--line);
+  background: rgba(233, 238, 233, 0.025);
+  color: var(--paper);
+  padding: 16px;
+  text-align: left;
+}
+button.finding-card {
+  cursor: pointer;
+}
+.finding-card.active {
+  border-color: var(--signal);
+}
+.finding-card span,
+.finding-card small {
+  color: var(--muted);
+  font-family: "Courier New", monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+.stack-form,
+.action-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+}
+.stack-form button,
+.command-row button {
+  min-height: 44px;
+  border: 1px solid var(--signal);
+  background: transparent;
+  color: var(--signal);
+  padding: 0 14px;
+  cursor: pointer;
+}
+@media (max-width: 860px) {
+  .phase-three-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 input::placeholder {

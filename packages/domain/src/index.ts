@@ -579,7 +579,10 @@ export type Permission =
   | "actions:read"
   | "actions:manage"
   | "actions:execute"
-  | "actions:verify";
+  | "actions:verify"
+  | "evidence:read"
+  | "evidence:manage"
+  | "search:read";
 
 export type PhaseOnePermission = Permission;
 
@@ -608,6 +611,9 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     "actions:manage",
     "actions:execute",
     "actions:verify",
+    "evidence:read",
+    "evidence:manage",
+    "search:read",
   ]),
   OPERATIONS_MANAGER: new Set([
     "organization:read",
@@ -632,6 +638,9 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     "actions:manage",
     "actions:execute",
     "actions:verify",
+    "evidence:read",
+    "evidence:manage",
+    "search:read",
   ]),
   SUPERVISOR: new Set([
     "organization:read",
@@ -650,6 +659,9 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     "actions:read",
     "actions:execute",
     "actions:verify",
+    "evidence:read",
+    "evidence:manage",
+    "search:read",
   ]),
   TECHNICIAN: new Set([
     "organization:read",
@@ -664,6 +676,9 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     "findings:read",
     "actions:read",
     "actions:execute",
+    "evidence:read",
+    "evidence:manage",
+    "search:read",
   ]),
   VIEWER: new Set([
     "organization:read",
@@ -676,6 +691,8 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     "inspection-dashboard:read",
     "findings:read",
     "actions:read",
+    "evidence:read",
+    "search:read",
   ]),
 };
 

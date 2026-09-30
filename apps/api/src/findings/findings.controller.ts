@@ -1,5 +1,6 @@
 import {
   correctiveActionCreateSchema,
+  correctiveActionAssignSchema,
   correctiveActionTransitionSchema,
   findingDismissSchema,
 } from "@nexus/validation";
@@ -11,6 +12,7 @@ import {
   Inject,
   Param,
   Post,
+  Query,
   Req,
 } from "@nestjs/common";
 import { ApiCookieAuth, ApiTags } from "@nestjs/swagger";
@@ -29,10 +31,41 @@ export class FindingsController {
   ) {}
 
   @Get("findings")
-  async findings(@Req() request: FastifyRequest) {
+  async findings(
+    @Req() request: FastifyRequest,
+    @Query("status") status?: string,
+    @Query("severity") severity?: string,
+    @Query("siteId") siteId?: string,
+    @Query("assetId") assetId?: string,
+    @Query("assigneeId") assigneeId?: string,
+    @Query("overdue") overdue?: string,
+  ) {
+    const statuses = [
+      "OPEN",
+      "ACKNOWLEDGED",
+      "ACTION_REQUIRED",
+      "IN_PROGRESS",
+      "READY_FOR_VERIFICATION",
+      "VERIFIED",
+      "CLOSED",
+      "DISMISSED",
+    ] as const;
+    const severities = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
+    if (status && !statuses.includes(status as (typeof statuses)[number]))
+      throw new BadRequestException("Invalid finding status filter");
+    if (severity && !severities.includes(severity as (typeof severities)[number]))
+      throw new BadRequestException("Invalid finding severity filter");
     return {
       data: await this.service.listFindings(
         await this.context.requireTenant(request, "findings:read"),
+        {
+          ...(status ? { status: status as (typeof statuses)[number] } : {}),
+          ...(severity ? { severity: severity as (typeof severities)[number] } : {}),
+          ...(siteId ? { siteId } : {}),
+          ...(assetId ? { assetId } : {}),
+          ...(assigneeId ? { assigneeId } : {}),
+          ...(overdue === "true" ? { overdue: true } : {}),
+        },
       ),
     };
   }
@@ -43,6 +76,33 @@ export class FindingsController {
       data: await this.service.getFinding(
         await this.context.requireTenant(request, "findings:read"),
         id,
+      ),
+    };
+  }
+
+  @Get("actions")
+  async actions(@Req() request: FastifyRequest) {
+    return {
+      data: await this.service.listActions(
+        await this.context.requireTenant(request, "actions:read"),
+      ),
+    };
+  }
+
+  @Get("actions/eligible-assignees")
+  async eligibleAssignees(@Req() request: FastifyRequest) {
+    return {
+      data: await this.service.listEligibleAssignees(
+        await this.context.requireTenant(request, "actions:manage"),
+      ),
+    };
+  }
+
+  @Get("findings-dashboard")
+  async dashboard(@Req() request: FastifyRequest) {
+    return {
+      data: await this.service.dashboard(
+        await this.context.requireTenant(request, "inspection-dashboard:read"),
       ),
     };
   }
@@ -90,6 +150,19 @@ export class FindingsController {
     };
   }
 
+  @Post("actions/:id/assign")
+  async assign(@Req() request: FastifyRequest, @Param("id") id: string, @Body() body: unknown) {
+    const input = parse(correctiveActionAssignSchema, body);
+    return {
+      data: await this.service.reassignAction(
+        await this.context.requireTenant(request, "actions:manage"),
+        id,
+        input.assignedTo,
+        input.reason,
+      ),
+    };
+  }
+
   @Post("actions/:id/block")
   async block(@Req() request: FastifyRequest, @Param("id") id: string, @Body() body: unknown) {
     const input = parse(correctiveActionTransitionSchema, body);
@@ -116,6 +189,39 @@ export class FindingsController {
         await this.context.requireTenant(request, "actions:execute"),
         id,
         input.note,
+      ),
+    };
+  }
+
+  @Post("actions/:id/complete")
+  async complete(@Req() request: FastifyRequest, @Param("id") id: string, @Body() body: unknown) {
+    const input = parse(correctiveActionTransitionSchema, body);
+    if (!input.completionNotes) throw new BadRequestException("Completion notes are required");
+    return {
+      data: await this.service.completeAction(
+        await this.context.requireTenant(request, "actions:execute"),
+        id,
+        input.completionNotes,
+      ),
+    };
+  }
+
+  @Post("actions/:id/verify")
+  async verify(@Req() request: FastifyRequest, @Param("id") id: string) {
+    return {
+      data: await this.service.verifyAction(
+        await this.context.requireTenant(request, "actions:verify"),
+        id,
+      ),
+    };
+  }
+
+  @Post("findings/:id/close")
+  async close(@Req() request: FastifyRequest, @Param("id") id: string) {
+    return {
+      data: await this.service.closeFinding(
+        await this.context.requireTenant(request, "findings:manage"),
+        id,
       ),
     };
   }

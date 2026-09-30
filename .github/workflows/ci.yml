@@ -57,6 +57,8 @@ jobs:
       - run: bash scripts/check-phase-one-auth.sh
       - run: bash scripts/check-phase-two-database.sh
       - run: bash scripts/check-phase-two-inspections.sh
+      - run: bash scripts/check-phase-three-database.sh
+      - run: bash scripts/check-phase-three-lifecycle.sh
       - if: failure()
         name: Report Phase 2 smoke failure
         run: |

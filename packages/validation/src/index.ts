@@ -368,6 +368,37 @@ export const correctiveActionTransitionSchema = z.object({
   completionNotes: z.string().trim().min(1).max(10_000).optional(),
   completionEvidenceCount: z.number().int().min(0).max(100).optional(),
 });
+export const correctiveActionAssignSchema = z.object({
+  assignedTo: uuidV7Schema,
+  reason: z.string().trim().min(1).max(5_000),
+});
+
+export const evidenceTargetTypeSchema = z.enum(["FINDING", "CORRECTIVE_ACTION"]);
+export const evidenceUploadAuthorizeSchema = z.object({
+  targetType: evidenceTargetTypeSchema,
+  targetId: uuidV7Schema,
+  originalName: z.string().trim().min(1).max(255),
+  contentType: z.enum(["image/jpeg", "image/png", "image/webp", "application/pdf"]),
+  contentLength: z
+    .number()
+    .int()
+    .min(1)
+    .max(20 * 1024 * 1024),
+  checksum: z.string().regex(/^[a-f0-9]{64}$/),
+});
+export const evidenceFinalizeSchema = z
+  .object({
+    uploadGrantId: uuidV7Schema,
+    capturedAt: z.string().datetime({ offset: true }).optional(),
+    note: z.string().trim().max(5_000).optional(),
+    latitude: z.number().min(-90).max(90).optional(),
+    longitude: z.number().min(-180).max(180).optional(),
+    deviceMetadata: z.record(z.string(), z.string().max(500)).optional(),
+  })
+  .refine(
+    (value) => (value.latitude === undefined) === (value.longitude === undefined),
+    "Latitude and longitude must be supplied together",
+  );
 
 export type InvitationCreateInput = z.infer<typeof invitationCreateSchema>;
 export type SiteCreateInput = z.infer<typeof siteCreateSchema>;
@@ -386,3 +417,6 @@ export type FindingTransitionInput = z.infer<typeof findingTransitionSchema>;
 export type FindingDismissInput = z.infer<typeof findingDismissSchema>;
 export type CorrectiveActionCreateInput = z.infer<typeof correctiveActionCreateSchema>;
 export type CorrectiveActionTransitionInput = z.infer<typeof correctiveActionTransitionSchema>;
+export type CorrectiveActionAssignInput = z.infer<typeof correctiveActionAssignSchema>;
+export type EvidenceUploadAuthorizeInput = z.infer<typeof evidenceUploadAuthorizeSchema>;
+export type EvidenceFinalizeInput = z.infer<typeof evidenceFinalizeSchema>;

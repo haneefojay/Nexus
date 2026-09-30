@@ -10,6 +10,7 @@ import { FastifyAdapter, NestFastifyApplication } from "@nestjs/platform-fastify
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { importQueueName, inspectionQueueName } from "@nexus/contracts";
 import { Queue } from "bullmq";
+import { S3StorageProvider } from "@nexus/storage";
 import { parseRedisConnection } from "./infrastructure/redis-connection.js";
 
 import { AppModule } from "./app.module.js";
@@ -26,6 +27,15 @@ async function bootstrap(): Promise<void> {
   const inspectionQueue = new Queue(inspectionQueueName, {
     connection: parseRedisConnection(environment.REDIS_URL),
   });
+  const storage = new S3StorageProvider({
+    endpoint: environment.S3_ENDPOINT,
+    region: environment.S3_REGION,
+    bucket: environment.S3_BUCKET,
+    accessKeyId: environment.S3_ACCESS_KEY,
+    secretAccessKey: environment.S3_SECRET_KEY,
+    forcePathStyle: process.env.S3_FORCE_PATH_STYLE !== "false",
+  });
+  await storage.ensureBucket();
   const auth = createNexusAuth({
     db: database.db,
     secret: environment.BETTER_AUTH_SECRET,
@@ -43,6 +53,7 @@ async function bootstrap(): Promise<void> {
       emailDispatcher,
       importQueue,
       inspectionQueue,
+      storage,
       webUrl: environment.WEB_URL,
     }),
     adapter,

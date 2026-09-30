@@ -23,6 +23,7 @@
     "@nexus/contracts": "workspace:*",
     "@nexus/database": "workspace:*",
     "@nexus/domain": "workspace:*",
+    "@nexus/storage": "workspace:*",
     "@nexus/validation": "workspace:*",
     "bullmq": "5.58.5",
     "class-transformer": "0.5.1",

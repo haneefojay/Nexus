@@ -5,6 +5,7 @@ import {
   and,
   assets,
   eq,
+  findingTransitions,
   inspectionFindings,
   inspectionPlans,
   inspectionResponses,
@@ -428,22 +429,34 @@ export class InspectionsService {
       throw new ConflictException(
         "Findings can only be entered while an inspection is in progress",
       );
-    const [created] = await this.db
-      .insert(inspectionFindings)
-      .values({
+    return this.db.transaction(async (transaction) => {
+      const [created] = await transaction
+        .insert(inspectionFindings)
+        .values({
+          organizationId: context.organizationId,
+          inspectionRunId: id,
+          siteId: run.siteId,
+          assetId: run.assetId,
+          createdBy: context.userId,
+          ...input,
+        })
+        .returning();
+      await transaction.insert(findingTransitions).values({
         organizationId: context.organizationId,
-        inspectionRunId: id,
-        siteId: run.siteId,
-        assetId: run.assetId,
-        createdBy: context.userId,
-        ...input,
-      })
-      .returning();
-    await this.audit(context, "finding.created", "inspection_finding", created!.id, {
-      inspectionRunId: id,
-      severity: input.severity,
+        findingId: created!.id,
+        toStatus: "OPEN",
+        actorUserId: context.userId,
+      });
+      await transaction.insert(activityEvents).values({
+        organizationId: context.organizationId,
+        actorUserId: context.userId,
+        action: "finding.created",
+        resourceType: "inspection_finding",
+        resourceId: created!.id,
+        metadata: { inspectionRunId: id, severity: input.severity },
+      });
+      return created!;
     });
-    return created!;
   }
 
   async submitRun(context: TenantContext, id: string) {
