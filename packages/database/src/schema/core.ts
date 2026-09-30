@@ -144,6 +144,13 @@ export const inspectionNotificationStatusEnum = pgEnum("inspection_notification_
   "FAILED",
 ]);
 export const fieldDeviceStatusEnum = pgEnum("field_device_status", ["ACTIVE", "REVOKED"]);
+export const reportStatusEnum = pgEnum("report_status", [
+  "QUEUED",
+  "PROCESSING",
+  "COMPLETED",
+  "FAILED",
+  "EXPIRED",
+]);
 export const fieldSyncOutcomeEnum = pgEnum("field_sync_outcome", [
   "SUCCESS",
   "RETRYABLE_FAILURE",
@@ -1018,6 +1025,50 @@ export const evidence = pgTable(
     }).onDelete("restrict"),
     unique("evidence_storage_object_unique").on(table.storageObjectId),
     index("evidence_target_idx").on(table.organizationId, table.targetType, table.targetId),
+  ],
+);
+
+export const reportRequests = pgTable(
+  "report_requests",
+  {
+    id: id(),
+    organizationId: uuid("organization_id").notNull(),
+    inspectionRunId: uuid("inspection_run_id").notNull(),
+    requestedBy: uuid("requested_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    status: reportStatusEnum("status").notNull().default("QUEUED"),
+    snapshot: jsonb("snapshot").notNull(),
+    snapshotHash: text("snapshot_hash").notNull(),
+    objectKey: text("object_key"),
+    checksum: text("checksum"),
+    size: bigint("size", { mode: "number" }),
+    errorCode: text("error_code"),
+    attemptCount: integer("attempt_count").notNull().default(0),
+    createdAt: createdAt(),
+    processingAt: timestamp("processing_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    unique("report_requests_organization_id_unique").on(table.organizationId, table.id),
+    unique("report_requests_snapshot_unique").on(
+      table.organizationId,
+      table.inspectionRunId,
+      table.snapshotHash,
+    ),
+    foreignKey({
+      name: "report_requests_run_tenant_fk",
+      columns: [table.organizationId, table.inspectionRunId],
+      foreignColumns: [inspectionRuns.organizationId, inspectionRuns.id],
+    }).onDelete("restrict"),
+    index("report_requests_status_idx").on(table.organizationId, table.status, table.createdAt),
+    check("report_requests_attempt_nonnegative", sql`${table.attemptCount} >= 0`),
+    check(
+      "report_requests_completed_artifact",
+      sql`${table.status} <> 'COMPLETED' or (${table.objectKey} is not null and ${table.checksum} is not null and ${table.completedAt} is not null)`,
+    ),
   ],
 );
 

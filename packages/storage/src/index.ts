@@ -37,6 +37,22 @@ export interface PresignedUpload {
   requiredHeaders: Record<string, string>;
 }
 
+export interface PrivateArtifact {
+  objectKey: string;
+  checksum: string;
+  size: number;
+}
+
+export interface PrivateArtifactRequest {
+  category: "reports" | "exports";
+  organizationId: string;
+  artifactId: string;
+  extension: "pdf" | "csv";
+  contentType: "application/pdf" | "text/csv";
+  body: Uint8Array;
+  checksum: string;
+}
+
 export interface StoredObjectMetadata {
   contentType: string | undefined;
   contentLength: number | undefined;
@@ -48,6 +64,7 @@ export interface StorageProvider {
   headObject(objectKey: string): Promise<StoredObjectMetadata | null>;
   readObjectPrefix(objectKey: string, bytes: number): Promise<Uint8Array>;
   createAuthorizedDownload(objectKey: string, expiresInSeconds: number): Promise<string>;
+  writePrivateArtifact(request: PrivateArtifactRequest): Promise<PrivateArtifact>;
   deleteObject(objectKey: string): Promise<void>;
 }
 
@@ -169,6 +186,24 @@ export class S3StorageProvider implements StorageProvider {
       }),
       { expiresIn: Math.min(Math.max(expiresInSeconds, 1), 300) },
     );
+  }
+
+  async writePrivateArtifact(request: PrivateArtifactRequest): Promise<PrivateArtifact> {
+    const safe = /^[0-9a-f-]{32,36}$/i;
+    if (!safe.test(request.organizationId) || !safe.test(request.artifactId))
+      throw new Error("Artifact identity is invalid");
+    const objectKey = `${request.category}/${request.organizationId}/${request.artifactId}.${request.extension}`;
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: objectKey,
+        Body: request.body,
+        ContentType: request.contentType,
+        ContentLength: request.body.byteLength,
+        Metadata: { checksum: request.checksum, artifact: request.artifactId },
+      }),
+    );
+    return { objectKey, checksum: request.checksum, size: request.body.byteLength };
   }
 
   async deleteObject(objectKey: string): Promise<void> {

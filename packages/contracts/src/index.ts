@@ -27,6 +27,15 @@ export interface GenerateInspectionRunsJob {
   horizonDays: number;
   requestedAt: string;
 }
+
+export const reportQueueName = "nexus-reports" as const;
+export const generateInspectionReportJobName = "generate-inspection-report" as const;
+export interface GenerateInspectionReportJob {
+  reportRequestId: string;
+  organizationId: string;
+  correlationId: string;
+}
+
 export const systemQueueName = "nexus-system" as const;
 export const cleanupEvidenceUploadsJobName = "cleanup-evidence-uploads" as const;
 export interface CleanupEvidenceUploadsJob {

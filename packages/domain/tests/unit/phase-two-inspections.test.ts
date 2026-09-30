@@ -161,3 +161,15 @@ describe("inspection operational calculations", () => {
     ).toEqual(["finding", "inspection", "asset"]);
   });
 });
+
+describe("inspection reportability", () => {
+  it("permits only submitted immutable lifecycle states", async () => {
+    const { isInspectionReportable } = await import("../../src/index.js");
+    expect(isInspectionReportable("IN_PROGRESS")).toBe(false);
+    expect(isInspectionReportable("CANCELLED")).toBe(false);
+    expect(isInspectionReportable("SUBMITTED")).toBe(true);
+    expect(isInspectionReportable("REVIEW_REQUIRED")).toBe(true);
+    expect(isInspectionReportable("APPROVED")).toBe(true);
+    expect(isInspectionReportable("CLOSED")).toBe(true);
+  });
+});

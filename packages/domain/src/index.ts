@@ -33,6 +33,17 @@ export const inspectionRunStatuses = [
 ] as const;
 export type InspectionRunStatus = (typeof inspectionRunStatuses)[number];
 
+export const reportableInspectionStatuses: ReadonlySet<InspectionRunStatus> = new Set([
+  "SUBMITTED",
+  "REVIEW_REQUIRED",
+  "APPROVED",
+  "CLOSED",
+]);
+
+export function isInspectionReportable(status: InspectionRunStatus): boolean {
+  return reportableInspectionStatuses.has(status);
+}
+
 export const inspectionResponseTypes = [
   "PASS_FAIL",
   "YES_NO",
@@ -582,6 +593,8 @@ export type Permission =
   | "actions:verify"
   | "evidence:read"
   | "evidence:manage"
+  | "reports:read"
+  | "reports:manage"
   | "search:read";
 
 export type PhaseOnePermission = Permission;
@@ -613,6 +626,8 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     "actions:verify",
     "evidence:read",
     "evidence:manage",
+    "reports:read",
+    "reports:manage",
     "search:read",
   ]),
   OPERATIONS_MANAGER: new Set([
@@ -640,6 +655,8 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     "actions:verify",
     "evidence:read",
     "evidence:manage",
+    "reports:read",
+    "reports:manage",
     "search:read",
   ]),
   SUPERVISOR: new Set([
@@ -661,6 +678,8 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     "actions:verify",
     "evidence:read",
     "evidence:manage",
+    "reports:read",
+    "reports:manage",
     "search:read",
   ]),
   TECHNICIAN: new Set([
@@ -678,6 +697,8 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     "actions:execute",
     "evidence:read",
     "evidence:manage",
+    "reports:read",
+    "reports:manage",
     "search:read",
   ]),
   VIEWER: new Set([
@@ -692,6 +713,7 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     "findings:read",
     "actions:read",
     "evidence:read",
+    "reports:read",
     "search:read",
   ]),
 };
