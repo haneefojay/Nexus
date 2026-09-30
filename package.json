@@ -18,6 +18,7 @@
     "audit:dependencies": "pnpm audit --audit-level high"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.10.2",
     "@playwright/test": "^1.55.1",
     "eslint": "9.39.5",
     "eslint-config-next": "16.3.7",

@@ -9,6 +9,8 @@ import {
   type AuthEmailJob,
   type ProcessImportJob,
   type GenerateInspectionRunsJob,
+  cleanupArtifactsJobName,
+  type CleanupArtifactsJob,
   cleanupEvidenceUploadsJobName,
   systemQueueName,
   type CleanupEvidenceUploadsJob,
@@ -28,6 +30,7 @@ import { renderAuthEmail } from "./auth-email.js";
 import { processImport } from "./process-import.js";
 import { generateInspectionRuns } from "./generate-inspection-runs.js";
 import { dispatchInspectionNotifications } from "./inspection-notifications.js";
+import { cleanupExpiredArtifacts } from "./artifact-cleanup.js";
 import { cleanupExpiredEvidenceUploads } from "./evidence-cleanup.js";
 import { generateOperationalExport } from "./exports.js";
 import { generateInspectionReport } from "./reporting.js";
@@ -46,7 +49,9 @@ function parseRedisConnection(redisUrl: string) {
 const environment = parseServerEnvironment(process.env);
 const connection = parseRedisConnection(environment.REDIS_URL);
 const database = createDatabase(environment.DATABASE_URL);
-const systemQueue = new Queue<CleanupEvidenceUploadsJob>(systemQueueName, { connection });
+const systemQueue = new Queue<CleanupEvidenceUploadsJob | CleanupArtifactsJob>(systemQueueName, {
+  connection,
+});
 const storage = new S3StorageProvider({
   endpoint: environment.S3_ENDPOINT,
   region: environment.S3_REGION,
@@ -94,6 +99,8 @@ const exportWorker = new Worker<GenerateOperationalExportJob>(
       storage,
       job.data.exportRequestId,
       job.data.organizationId,
+      new Date(),
+      environment.ARTIFACT_RETENTION_DAYS,
     );
   },
   { connection, concurrency: 2 },
@@ -108,6 +115,8 @@ const reportWorker = new Worker<GenerateInspectionReportJob>(
       storage,
       job.data.reportRequestId,
       job.data.organizationId,
+      new Date(),
+      environment.ARTIFACT_RETENTION_DAYS,
     );
   },
   { connection, concurrency: 2 },
@@ -128,12 +137,18 @@ const inspectionWorker = new Worker<GenerateInspectionRunsJob>(
   },
   { connection, concurrency: 2 },
 );
-const systemWorker = new Worker<CleanupEvidenceUploadsJob>(
+const systemWorker = new Worker<CleanupEvidenceUploadsJob | CleanupArtifactsJob>(
   systemQueueName,
   async (job) => {
-    if (job.name !== cleanupEvidenceUploadsJobName)
-      throw new Error(`Unsupported system job: ${job.name}`);
-    await cleanupExpiredEvidenceUploads(database.db, storage, new Date(job.data.requestedAt));
+    if (job.name === cleanupEvidenceUploadsJobName) {
+      await cleanupExpiredEvidenceUploads(database.db, storage, new Date(job.data.requestedAt));
+      return;
+    }
+    if (job.name === cleanupArtifactsJobName) {
+      await cleanupExpiredArtifacts(database.db, storage, new Date(job.data.requestedAt));
+      return;
+    }
+    throw new Error(`Unsupported system job: ${job.name}`);
   },
   { connection, concurrency: 1 },
 );
@@ -195,6 +210,16 @@ async function bootstrap(): Promise<void> {
     {
       jobId: "evidence-orphan-cleanup",
       repeat: { every: 15 * 60 * 1_000 },
+      attempts: 8,
+      backoff: { type: "exponential", delay: 2_000 },
+    },
+  );
+  await systemQueue.add(
+    cleanupArtifactsJobName,
+    { requestedAt: new Date().toISOString() },
+    {
+      jobId: "report-export-expiry-cleanup",
+      repeat: { every: 60 * 60 * 1_000 },
       attempts: 8,
       backoff: { type: "exponential", delay: 2_000 },
     },

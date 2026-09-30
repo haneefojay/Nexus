@@ -21,6 +21,7 @@ export const serverEnvironmentSchema = z.object({
     (value) => (value === "" ? undefined : value),
     z.string().min(1).optional(),
   ),
+  ARTIFACT_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(30),
   SMTP_PASSWORD: z.preprocess(
     (value) => (value === "" ? undefined : value),
     z.string().min(1).optional(),

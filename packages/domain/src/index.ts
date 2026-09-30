@@ -844,3 +844,11 @@ export function validateAssetImportRows(rows: readonly AssetImportRow[]): Import
 function issue(rowNumber: number, field: keyof AssetImportRow, code: string): ImportRowIssue {
   return { rowNumber, field, code, message: `${String(field)} failed ${code}.` };
 }
+
+export function isArtifactCleanupEligible(
+  status: "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED" | "EXPIRED",
+  expiresAt: Date | null,
+  now: Date,
+): boolean {
+  return status === "COMPLETED" && expiresAt !== null && expiresAt.getTime() <= now.getTime();
+}

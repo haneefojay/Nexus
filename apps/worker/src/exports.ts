@@ -32,6 +32,7 @@ export async function generateOperationalExport(
   exportRequestId: string,
   organizationId: string,
   now = new Date(),
+  retentionDays = 30,
 ): Promise<void> {
   const [record] = await db
     .select({ status: exportRequests.status, snapshot: exportRequests.snapshot })
@@ -74,7 +75,7 @@ export async function generateOperationalExport(
         checksum: stored.checksum,
         size: stored.size,
         completedAt: now,
-        expiresAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1_000),
+        expiresAt: new Date(now.getTime() + retentionDays * 24 * 60 * 60 * 1_000),
         errorCode: null,
         updatedAt: now,
       })

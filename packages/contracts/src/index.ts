@@ -45,6 +45,10 @@ export interface GenerateInspectionReportJob {
 }
 
 export const systemQueueName = "nexus-system" as const;
+export const cleanupArtifactsJobName = "cleanup-expired-artifacts" as const;
+export interface CleanupArtifactsJob {
+  requestedAt: string;
+}
 export const cleanupEvidenceUploadsJobName = "cleanup-evidence-uploads" as const;
 export interface CleanupEvidenceUploadsJob {
   requestedAt: string;

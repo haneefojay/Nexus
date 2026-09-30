@@ -108,6 +108,7 @@ export async function generateInspectionReport(
   reportRequestId: string,
   organizationId: string,
   now = new Date(),
+  retentionDays = 30,
 ): Promise<void> {
   const [record] = await db
     .select({ status: reportRequests.status, snapshot: reportRequests.snapshot })
@@ -150,7 +151,7 @@ export async function generateInspectionReport(
         checksum: stored.checksum,
         size: stored.size,
         completedAt: now,
-        expiresAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1_000),
+        expiresAt: new Date(now.getTime() + retentionDays * 24 * 60 * 60 * 1_000),
         errorCode: null,
         updatedAt: now,
       })
