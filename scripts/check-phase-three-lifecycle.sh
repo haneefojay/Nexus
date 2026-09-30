@@ -43,6 +43,7 @@ compose=(docker compose)
 psql=("${compose[@]}" exec -T postgres psql -U "${POSTGRES_USER:-nexus}" -d "${POSTGRES_DB:-nexus}" -At -v ON_ERROR_STOP=1)
 signup() {
   local name=$1 email=$2 cookie=$3
+  "${psql[@]}" -c "DELETE FROM rate_limits;" >/dev/null
   curl --fail --silent -H 'content-type: application/json' \
     --data "{\"name\":\"$name\",\"email\":\"$email\",\"password\":\"a-long-and-valid-password\"}" \
     http://localhost:3001/v1/auth/sign-up/email >/dev/null
