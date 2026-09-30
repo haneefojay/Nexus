@@ -1,5 +1,17 @@
 # Changelog
 
+## Phase 4 — Offline Field
+
+- Added installable field PWA, Dexie persistence, safe service-worker caching and upgrades, mobile
+  offline inspection execution, local submission, explicit sync/recovery states, and context
+  quarantine.
+- Added ordered UUIDv7 commands, device/run ownership, persisted idempotency outcomes, bounded retry,
+  conflicts, immutable sync activity, and versioned field synchronization APIs.
+- Extended evidence capture through local blobs, fresh server-authorized uploads, interrupted upload
+  recovery, finalization checkpoints, and inspection-run evidence targets.
+- Added IndexedDB, command-state, migration/constraint, dependency-audit, and desktop/mobile offline
+  Playwright gates.
+
 ## Phase 3 — Findings & Actions
 
 - Added tenant-safe finding and corrective-action lifecycles with immutable history, dismissal,
