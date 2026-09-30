@@ -130,9 +130,17 @@ for _ in $(seq 1 40); do
   kill -0 "$worker_pid" 2>/dev/null || { cat "$worker_log"; exit 1; }
   sleep 0.5
 done
-[[ -n "$run_id" ]] || { cat "$worker_log"; exit 1; }
+[[ -n "$run_id" ]] || {
+  {
+    echo "checkpoint=bounded worker generation"
+    echo "worker=$(tail -n 30 "$worker_log" | tr '\n' ' ' | tail -c 3000)"
+  } >/tmp/phase-two-inspections-failure.txt
+  cat "$worker_log"
+  exit 1
+}
 run_count=$("${psql[@]}" -c "SELECT count(*) FROM inspection_runs WHERE inspection_plan_id = '$plan_id';")
 [[ "$run_count" -ge 1 && "$run_count" -le 36 ]] || {
+  printf 'checkpoint=bounded worker generation\nrun_count=%s\n' "$run_count" >/tmp/phase-two-inspections-failure.txt
   echo "Expected bounded generation, got $run_count runs"
   exit 1
 }
