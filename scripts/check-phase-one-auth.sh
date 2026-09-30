@@ -73,7 +73,13 @@ sign_in_status=$(curl --silent --output /dev/null --write-out '%{http_code}' \
 cookie_jar=$(mktemp)
 sign_in_response=$(curl --fail --silent --cookie-jar "$cookie_jar" -H 'content-type: application/json' --data '{"email":"auth-phase-one@nexus.local","password":"a-long-and-valid-password"}' http://localhost:3001/v1/auth/sign-in/email)
 user_id=$(jq -er '.user.id' <<<"$sign_in_response")
-organization=$(curl --fail --silent --cookie "$cookie_jar" -H 'content-type: application/json' --data '{"name":"Phase One Infrastructure","slug":"phase-one-infrastructure","timezone":"Africa/Lagos"}' http://localhost:3001/v1/organizations)
+organization_response=$(curl --silent --cookie "$cookie_jar" -H 'content-type: application/json' --data '{"name":"Phase One Infrastructure","slug":"phase-one-infrastructure","timezone":"Africa/Lagos"}' --write-out $'\n%{http_code}' http://localhost:3001/v1/organizations)
+organization_status=$(tail -n 1 <<<"$organization_response")
+organization=$(sed '$d' <<<"$organization_response")
+if [[ "$organization_status" -lt 200 || "$organization_status" -ge 300 ]]; then
+  echo "::error title=Organization smoke request failed::HTTP $organization_status"
+  exit 1
+fi
 organization_id=$(jq -er '.data.id' <<<"$organization")
 site=$(curl --fail --silent --cookie "$cookie_jar" -H "x-organization-id: $organization_id" -H 'content-type: application/json' --data '{"name":"Lagos West","reference":"LG-WEST","type":"SOLAR","status":"ACTIVE","latitude":6.5244,"longitude":3.3792}' http://localhost:3001/v1/sites)
 site_id=$(jq -er '.data.id' <<<"$site")
