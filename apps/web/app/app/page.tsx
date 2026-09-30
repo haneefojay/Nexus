@@ -7,6 +7,9 @@ import {
   ArrowUpRight,
   Building2,
   Database,
+  CalendarDays,
+  ClipboardCheck,
+  FileCheck2,
   Map,
   Menu,
   Search,
@@ -20,6 +23,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 
 import { MapView } from "./map-view";
+import { InspectionsWorkspace } from "./inspections-workspace";
 
 type Organization = { id: string; name: string; role: string; slug: string };
 type Site = {
@@ -41,10 +45,24 @@ type Asset = {
 };
 type AssetType = { id: string; name: string; category: string };
 type Member = { id: string; name: string; email: string; role: string; status: string };
-type View = "overview" | "sites" | "assets" | "map" | "team" | "import";
+type View =
+  | "overview"
+  | "inspection-dashboard"
+  | "inspections"
+  | "templates"
+  | "plans"
+  | "sites"
+  | "assets"
+  | "map"
+  | "team"
+  | "import";
 
 const navigation: { id: View; label: string; icon: typeof Activity }[] = [
   { id: "overview", label: "Overview", icon: Activity },
+  { id: "inspection-dashboard", label: "Inspection dashboard", icon: ClipboardCheck },
+  { id: "inspections", label: "Inspection runs", icon: FileCheck2 },
+  { id: "templates", label: "Templates", icon: ClipboardCheck },
+  { id: "plans", label: "Plans & schedules", icon: CalendarDays },
   { id: "sites", label: "Sites", icon: Building2 },
   { id: "assets", label: "Assets", icon: Database },
   { id: "map", label: "Network map", icon: Map },
@@ -204,6 +222,15 @@ export default function OperationsPage() {
         </header>
         {error && <p className="error-banner">{error}</p>}
         {view === "overview" && <Overview sites={sites} assets={assets} attention={attention} />}
+        {["inspection-dashboard", "inspections", "templates", "plans"].includes(view) && (
+          <InspectionsWorkspace
+            assets={assets}
+            members={members}
+            mode={view as "inspection-dashboard" | "inspections" | "templates" | "plans"}
+            organizationId={organizationId}
+            sites={sites}
+          />
+        )}
         {view === "sites" && (
           <SitesView organizationId={organizationId} sites={sites} onDone={load} />
         )}
