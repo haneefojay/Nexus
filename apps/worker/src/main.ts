@@ -12,6 +12,9 @@ import {
   cleanupEvidenceUploadsJobName,
   systemQueueName,
   type CleanupEvidenceUploadsJob,
+  reportQueueName,
+  generateInspectionReportJobName,
+  type GenerateInspectionReportJob,
 } from "@nexus/contracts";
 import { createDatabase } from "@nexus/database";
 import { Queue, Worker } from "bullmq";
@@ -23,6 +26,7 @@ import { processImport } from "./process-import.js";
 import { generateInspectionRuns } from "./generate-inspection-runs.js";
 import { dispatchInspectionNotifications } from "./inspection-notifications.js";
 import { cleanupExpiredEvidenceUploads } from "./evidence-cleanup.js";
+import { generateInspectionReport } from "./reporting.js";
 
 function parseRedisConnection(redisUrl: string) {
   const parsed = new URL(redisUrl);
@@ -73,6 +77,20 @@ const importWorker = new Worker<ProcessImportJob>(
   async (job) => {
     if (job.name !== processImportJobName) throw new Error(`Unsupported import job: ${job.name}`);
     await processImport(database.db, job.data.importJobId, job.data.organizationId);
+  },
+  { connection, concurrency: 2 },
+);
+const reportWorker = new Worker<GenerateInspectionReportJob>(
+  reportQueueName,
+  async (job) => {
+    if (job.name !== generateInspectionReportJobName)
+      throw new Error(`Unsupported report job: ${job.name}`);
+    await generateInspectionReport(
+      database.db,
+      storage,
+      job.data.reportRequestId,
+      job.data.organizationId,
+    );
   },
   { connection, concurrency: 2 },
 );
@@ -130,6 +148,7 @@ async function shutdown(signal: string): Promise<void> {
     emailWorker.close(),
     importWorker.close(),
     inspectionWorker.close(),
+    reportWorker.close(),
     inspectionQueue.close(),
     systemQueue.close(),
     systemWorker.close(),
@@ -165,6 +184,7 @@ async function bootstrap(): Promise<void> {
     systemQueue.waitUntilReady(),
     emailWorker.waitUntilReady(),
     importWorker.waitUntilReady(),
+    reportWorker.waitUntilReady(),
     inspectionWorker.waitUntilReady(),
     systemWorker.waitUntilReady(),
     transporter.verify(),

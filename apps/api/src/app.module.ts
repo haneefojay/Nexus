@@ -2,6 +2,7 @@ import type { NexusAuth } from "@nexus/auth";
 import type { createDatabase } from "@nexus/database";
 import { DynamicModule, Module } from "@nestjs/common";
 import type { AuthEmailDispatcher } from "@nexus/auth";
+import type { GenerateInspectionReportJob } from "@nexus/contracts";
 import type { Queue } from "bullmq";
 import type { StorageProvider } from "@nexus/storage";
 
@@ -20,6 +21,8 @@ import { FindingsController } from "./findings/findings.controller.js";
 import { FindingsService } from "./findings/findings.service.js";
 import { EvidenceController } from "./evidence/evidence.controller.js";
 import { EvidenceService } from "./evidence/evidence.service.js";
+import { ReportsController } from "./reports/reports.controller.js";
+import { ReportsService } from "./reports/reports.service.js";
 import { SearchController } from "./search/search.controller.js";
 import { SearchService } from "./search/search.service.js";
 import { FieldSyncController } from "./sync/field-sync.controller.js";
@@ -30,6 +33,7 @@ import {
   EMAIL_DISPATCHER_TOKEN,
   IMPORT_QUEUE_TOKEN,
   INSPECTION_QUEUE_TOKEN,
+  REPORT_QUEUE_TOKEN,
   STORAGE_TOKEN,
   WEB_URL_TOKEN,
 } from "./tokens.js";
@@ -40,6 +44,7 @@ export interface AppDependencies {
   emailDispatcher: AuthEmailDispatcher;
   importQueue: Queue;
   inspectionQueue: Queue;
+  reportQueue: Queue<GenerateInspectionReportJob>;
   storage: StorageProvider;
   webUrl: string;
 }
@@ -57,6 +62,7 @@ export class AppModule {
         InspectionsController,
         FindingsController,
         EvidenceController,
+        ReportsController,
         SearchController,
         FieldSyncController,
       ],
@@ -67,6 +73,7 @@ export class AppModule {
         { provide: EMAIL_DISPATCHER_TOKEN, useValue: dependencies.emailDispatcher },
         { provide: IMPORT_QUEUE_TOKEN, useValue: dependencies.importQueue },
         { provide: INSPECTION_QUEUE_TOKEN, useValue: dependencies.inspectionQueue },
+        { provide: REPORT_QUEUE_TOKEN, useValue: dependencies.reportQueue },
         { provide: STORAGE_TOKEN, useValue: dependencies.storage },
         { provide: WEB_URL_TOKEN, useValue: dependencies.webUrl },
         {
@@ -107,6 +114,15 @@ export class AppModule {
           inject: [DATABASE_TOKEN, STORAGE_TOKEN],
           useFactory: (db: AppDependencies["db"], storage: StorageProvider) =>
             new EvidenceService(db, storage),
+        },
+        {
+          provide: ReportsService,
+          inject: [DATABASE_TOKEN, REPORT_QUEUE_TOKEN, STORAGE_TOKEN],
+          useFactory: (
+            db: AppDependencies["db"],
+            queue: Queue<GenerateInspectionReportJob>,
+            storage: StorageProvider,
+          ) => new ReportsService(db, queue, storage),
         },
         {
           provide: SearchService,
