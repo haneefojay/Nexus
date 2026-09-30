@@ -6,6 +6,12 @@ All notable changes to this project will be documented here.
 
 ### Added
 
+- Phase 2 controlled inspection templates with ordered response definitions and immutable published versions.
+- Tenant-safe site/asset inspection plans with timezone-aware recurrence, active-user/role assignment, and bounded idempotent BullMQ run generation.
+- Deterministic inspection execution, required-response validation, immutable submitted responses/findings, and optional review/approval closure.
+- Deduplicated assignment, due, and overdue notification intents with retry-safe worker delivery and obsolete-notification suppression.
+- Authenticated responsive inspection authoring, scheduling, execution, review, coverage, and attention interfaces.
+- Phase 2 unit, migration, Docker lifecycle/security, and desktop/mobile Playwright gates.
 - Phase 1 tenant-safe core schema for organizations, memberships, invitations, sites, asset types, assets, imports, and immutable activity events.
 - Phase 1 domain policies and tests for lifecycles, fixed-role authorization, active-owner invariants, asset hierarchy, and import-row validation.
 - Docker-backed Phase 1 migration checks for PostGIS indexes, tenant asset-type scope, cycle prevention, owner retention, and append-only audit history.

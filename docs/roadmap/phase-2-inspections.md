@@ -1,6 +1,6 @@
 # Phase 2 — Inspections
 
-**Status: IN PROGRESS**
+**Status: COMPLETE**
 
 ## Goal
 
@@ -24,11 +24,11 @@ State machines, recurrence/timezones, required responses, version immutability, 
 
 ## Definition of Done
 
-- [ ] Manager can publish a template and create a recurring plan.
-- [ ] Worker creates controlled upcoming runs without materializing an unbounded future.
-- [ ] Technician can complete and submit an inspection online.
-- [ ] Submitted responses are immutable.
-- [ ] Due, overdue, coverage, and attention calculations are deterministic and tested.
+- [x] Manager can publish a template and create a recurring plan.
+- [x] Worker creates controlled upcoming runs without materializing an unbounded future.
+- [x] Technician can complete and submit an inspection online.
+- [x] Submitted responses are immutable.
+- [x] Due, overdue, coverage, and attention calculations are deterministic and tested.
 
 ## Baseline and gap analysis
 
