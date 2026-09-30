@@ -211,6 +211,143 @@ export function ReportsWorkspace({ organizationId }: { organizationId: string })
           </div>
         </>
       )}
+      <ExportsPanel organizationId={organizationId} />
+    </section>
+  );
+}
+
+function ExportsPanel({ organizationId }: { organizationId: string }) {
+  type ExportRecord = {
+    id: string;
+    exportType: "ASSETS" | "FINDINGS" | "INSPECTIONS";
+    status: "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED" | "EXPIRED";
+    rowCount: number;
+    createdAt: string;
+  };
+  const [exportType, setExportType] = useState<ExportRecord["exportType"]>("ASSETS");
+  const [records, setRecords] = useState<ExportRecord[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const load = useCallback(async () => {
+    const result = await api<{ data: ExportRecord[] }>("/v1/exports", {}, organizationId);
+    setRecords(result.data);
+  }, [organizationId]);
+  useEffect(() => {
+    void load().catch((cause: unknown) =>
+      setError(cause instanceof Error ? cause.message : "Exports could not be loaded"),
+    );
+  }, [load]);
+  useEffect(() => {
+    if (!records.some((record) => ["QUEUED", "PROCESSING"].includes(record.status))) return;
+    const timer = window.setInterval(() => void load().catch(() => undefined), 2000);
+    return () => window.clearInterval(timer);
+  }, [load, records]);
+  async function requestExport() {
+    setBusy(true);
+    setError("");
+    try {
+      await api(
+        "/v1/exports",
+        { method: "POST", body: JSON.stringify({ exportType }) },
+        organizationId,
+      );
+      await load();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Export request failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function act(record: ExportRecord, action: "retry" | "download") {
+    setBusy(true);
+    setError("");
+    try {
+      if (action === "retry")
+        await api(`/v1/exports/${record.id}/retry`, { method: "POST" }, organizationId);
+      else {
+        const result = await api<{ data: { downloadUrl: string } }>(
+          `/v1/exports/${record.id}/download`,
+          {},
+          organizationId,
+        );
+        window.location.assign(result.data.downloadUrl);
+      }
+      await load();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Export action failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <section aria-labelledby="exports-heading">
+      <header className="view-heading">
+        <div>
+          <p className="eyebrow">EXPORTS / UTC SOURCE DATA</p>
+          <h2 id="exports-heading">Operational CSV exports</h2>
+          <p>
+            Stable asset, finding, and inspection columns. Spreadsheet formulas are neutralized.
+          </p>
+        </div>
+      </header>
+      {error && (
+        <div className="form-error" role="alert">
+          {error}
+        </div>
+      )}
+      <div className="inline-form">
+        <label>
+          Dataset
+          <select
+            value={exportType}
+            onChange={(event) => setExportType(event.target.value as ExportRecord["exportType"])}
+          >
+            <option value="ASSETS">Assets</option>
+            <option value="FINDINGS">Findings</option>
+            <option value="INSPECTIONS">Inspections</option>
+          </select>
+        </label>
+        <button className="signal-button" disabled={busy} onClick={() => void requestExport()}>
+          <FileText size={16} />
+          {busy ? "Working…" : "Request CSV"}
+        </button>
+      </div>
+      <div className="data-table" aria-live="polite">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Dataset</th>
+              <th scope="col">Rows</th>
+              <th scope="col">Status</th>
+              <th scope="col">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {records.map((record) => (
+              <tr key={record.id}>
+                <td>{record.exportType}</td>
+                <td>{record.rowCount}</td>
+                <td>{record.status.replaceAll("_", " ")}</td>
+                <td>
+                  {record.status === "COMPLETED" && (
+                    <button disabled={busy} onClick={() => void act(record, "download")}>
+                      <Download size={16} /> Download CSV
+                    </button>
+                  )}
+                  {record.status === "FAILED" && (
+                    <button disabled={busy} onClick={() => void act(record, "retry")}>
+                      <RefreshCw size={16} /> Retry
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {!records.length && (
+          <div className="empty-state">No operational export has been requested.</div>
+        )}
+      </div>
     </section>
   );
 }
