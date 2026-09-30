@@ -24,6 +24,7 @@ import {
 import { createDatabase } from "@nexus/database";
 import { Queue, Worker } from "bullmq";
 import nodemailer from "nodemailer";
+import { SafeErrorMonitor, StructuredLogger } from "@nexus/observability";
 import { S3StorageProvider } from "@nexus/storage";
 
 import { renderAuthEmail } from "./auth-email.js";
@@ -47,6 +48,8 @@ function parseRedisConnection(redisUrl: string) {
 }
 
 const environment = parseServerEnvironment(process.env);
+const logger = new StructuredLogger("worker");
+const errorMonitor = new SafeErrorMonitor(logger);
 const connection = parseRedisConnection(environment.REDIS_URL);
 const database = createDatabase(environment.DATABASE_URL);
 const systemQueue = new Queue<CleanupEvidenceUploadsJob | CleanupArtifactsJob>(systemQueueName, {
@@ -152,31 +155,36 @@ const systemWorker = new Worker<CleanupEvidenceUploadsJob | CleanupArtifactsJob>
   },
   { connection, concurrency: 1 },
 );
-inspectionWorker.on("failed", (job, error) => {
-  const cause =
-    error.cause instanceof Error
-      ? error.cause.message
-      : typeof error.cause === "string"
-        ? error.cause
-        : undefined;
-  console.error(
-    JSON.stringify({
-      level: "error",
-      service: "worker",
-      event: "inspection_job_failed",
+function observeFailures<T>(worker: Worker<T>, operation: string): void {
+  worker.on("failed", (job, error) => {
+    const data: unknown = job?.data;
+    const fields =
+      typeof data === "object" && data !== null
+        ? (data as { correlationId?: unknown; organizationId?: unknown })
+        : {};
+    errorMonitor.capture(error, {
+      operation,
       jobId: job?.id,
-      message: error.message,
-      cause,
-    }),
-  );
-});
+      requestId: typeof fields.correlationId === "string" ? fields.correlationId : undefined,
+      organizationId: typeof fields.organizationId === "string" ? fields.organizationId : undefined,
+      status: "failed",
+    });
+  });
+}
+
+observeFailures(emailWorker, "email.deliver");
+observeFailures(importWorker, "import.process");
+observeFailures(exportWorker, "export.generate");
+observeFailures(reportWorker, "report.generate");
+observeFailures(inspectionWorker, "inspection.generate");
+observeFailures(systemWorker, "system.cleanup");
 
 let shuttingDown = false;
 
 async function shutdown(signal: string): Promise<void> {
   if (shuttingDown) return;
   shuttingDown = true;
-  console.info(JSON.stringify({ level: "info", service: "worker", event: "shutdown", signal }));
+  logger.log("info", "worker.shutdown", { signal });
   await Promise.allSettled([
     emailWorker.close(),
     importWorker.close(),
@@ -234,20 +242,13 @@ async function bootstrap(): Promise<void> {
     systemWorker.waitUntilReady(),
     transporter.verify(),
   ]);
-  console.info(JSON.stringify({ level: "info", service: "worker", event: "ready" }));
+  logger.log("info", "worker.ready", { status: "ready" });
 }
 
 process.once("SIGINT", () => void shutdown("SIGINT"));
 process.once("SIGTERM", () => void shutdown("SIGTERM"));
 
 void bootstrap().catch((error: unknown) => {
-  console.error(
-    JSON.stringify({
-      level: "error",
-      service: "worker",
-      event: "startup_failed",
-      message: error instanceof Error ? error.message : "Unknown startup error",
-    }),
-  );
+  errorMonitor.capture(error, { operation: "worker.startup", status: "failed" });
   process.exit(1);
 });

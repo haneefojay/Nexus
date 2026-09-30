@@ -570,7 +570,7 @@ export class InspectionsService {
     const coverage = await this.db.execute(sql`
       select s.id as site_id, s.name as site_name,
         count(r.id) filter (where r.scheduled_for <= now())::int as required,
-        count(r.id) filter (where r.status = 'CLOSED')::int as completed,
+        count(r.id) filter (where r.scheduled_for <= now() and r.status = 'CLOSED')::int as completed,
         count(r.id) filter (where r.due_at < now()
           and r.status in ('ASSIGNED','READY','IN_PROGRESS'))::int as overdue
       from sites s

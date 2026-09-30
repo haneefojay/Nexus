@@ -15,7 +15,10 @@
     "test:e2e": "playwright test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "audit:dependencies": "pnpm audit --audit-level high"
+    "audit:dependencies": "pnpm audit --audit-level high",
+    "check:secrets": "bash scripts/check-secrets.sh",
+    "validate:environment": "bash scripts/validate-environment.sh",
+    "seed:demo": "pnpm --filter @nexus/api seed:demo"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.10.2",

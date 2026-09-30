@@ -725,6 +725,12 @@ export const inspectionRuns = pgTable(
       table.dueAt,
     ),
     index("inspection_runs_assignee_status_idx").on(table.assignedTo, table.status, table.dueAt),
+    index("inspection_runs_coverage_idx").on(
+      table.organizationId,
+      table.siteId,
+      table.scheduledFor,
+      table.status,
+    ),
     check("inspection_runs_sequence_nonnegative", sql`${table.sequence} >= 0`),
     check("inspection_runs_due_after_schedule", sql`${table.dueAt} >= ${table.scheduledFor}`),
   ],
