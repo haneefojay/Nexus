@@ -233,9 +233,12 @@ function ExportsPanel({ organizationId }: { organizationId: string }) {
     setRecords(result.data);
   }, [organizationId]);
   useEffect(() => {
-    void load().catch((cause: unknown) =>
-      setError(cause instanceof Error ? cause.message : "Exports could not be loaded"),
-    );
+    const timer = window.setTimeout(() => {
+      void load().catch((cause: unknown) =>
+        setError(cause instanceof Error ? cause.message : "Exports could not be loaded"),
+      );
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [load]);
   useEffect(() => {
     if (!records.some((record) => ["QUEUED", "PROCESSING"].includes(record.status))) return;
