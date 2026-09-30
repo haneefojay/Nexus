@@ -1,7 +1,7 @@
 # NEXUS Delivery Roadmap
 
 **Current Phase: 2**  
-**Status: Phase 2 — READY TO START**  
+**Status: Phase 2 — IN PROGRESS**
 **Next Gate: Phase 2 Definition of Done**
 
 | Phase                     | Goal                                                                                                    | Status      |

@@ -439,6 +439,10 @@ importers:
         version: 4.1.11(@types/node@24.19.0)(vite@7.3.6(@types/node@24.19.0)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.20.5))
 
   packages/domain:
+    dependencies:
+      '@js-temporal/polyfill':
+        specifier: 0.5.1
+        version: 0.5.1
     devDependencies:
       typescript:
         specifier: ^5.9.2
@@ -1279,6 +1283,10 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@js-temporal/polyfill@0.5.1':
+    resolution: {integrity: sha512-hloP58zRVCRSpgDxmqCWJNlizAlUgJFqG2ypq79DCvyv9tHjRYMDOcPFjzfl/A1/YxDvRCZz8wvZvmapQnKwFQ==}
+    engines: {node: '>=12'}
 
   '@lukeed/csprng@1.1.0':
     resolution: {integrity: sha512-Z7C/xXCiGWsg0KuKsHTKJxbWhpI3Vs5GwLfOean7MGyVFGqdRgBbAjOCh6u4bbjPc/8MJ2pZmK/0DLdCbivLDA==}
@@ -3304,6 +3312,9 @@ packages:
     resolution: {integrity: sha512-m+aqu+LwO1O6sIopafj8HUVl5aawITwZQe/yHpMCKjaWBaA/d07B/QdMb3529REftiU+RMMHL3Vlsw3hON7vWg==}
     hasBin: true
 
+  jsbi@4.3.2:
+    resolution: {integrity: sha512-9fqMSQbhJykSeii05nxKl4m6Eqn2P6rOlYiS+C5Dr/HPIU/7yZxu5qzbs40tgaFORiw2Amd0mirjxatXYMkIew==}
+
   jsesc@3.1.0:
     resolution: {integrity: sha512-/sM3dO2FOzXjKQhJuo0Q173wf2KOo8t4I8vHy6lF9poUp7bKT0/NHE8fPX23PwfhnykfqnC2xRxOnVw5XuGIaA==}
     engines: {node: '>=6'}
@@ -5060,6 +5071,10 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
 
+  '@js-temporal/polyfill@0.5.1':
+    dependencies:
+      jsbi: 4.3.2
+
   '@lukeed/csprng@1.1.0': {}
 
   '@lukeed/ms@2.0.2': {}
@@ -6252,7 +6267,6 @@ snapshots:
     optionalDependencies:
       kysely: 0.29.6
       postgres: 3.4.7
-    optional: true
 
   drizzle-orm@0.45.3(postgres@3.4.7):
     optionalDependencies:
@@ -7108,6 +7122,8 @@ snapshots:
   js-yaml@5.4.2:
     dependencies:
       argparse: 2.0.1
+
+  jsbi@4.3.2: {}
 
   jsesc@3.1.0: {}
 
