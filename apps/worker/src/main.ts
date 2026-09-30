@@ -73,6 +73,12 @@ const inspectionWorker = new Worker<GenerateInspectionRunsJob>(
   { connection, concurrency: 2 },
 );
 inspectionWorker.on("failed", (job, error) => {
+  const cause =
+    error.cause instanceof Error
+      ? error.cause.message
+      : typeof error.cause === "string"
+        ? error.cause
+        : undefined;
   console.error(
     JSON.stringify({
       level: "error",
@@ -80,6 +86,7 @@ inspectionWorker.on("failed", (job, error) => {
       event: "inspection_job_failed",
       jobId: job?.id,
       message: error.message,
+      cause,
     }),
   );
 });
