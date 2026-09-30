@@ -9,6 +9,7 @@ import {
   Post,
   Req,
   UnauthorizedException,
+  InternalServerErrorException,
 } from "@nestjs/common";
 import { ApiCookieAuth, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import type { FastifyRequest } from "fastify";
@@ -49,7 +50,16 @@ export class OrganizationsController {
   @ApiResponse({ status: 400, description: "Invalid organization details" })
   @ApiResponse({ status: 401, description: "Verified session required" })
   async create(@Req() request: FastifyRequest, @Body() body: unknown) {
-    const session = await this.auth.api.getSession({ headers: toHeaders(request) });
+    let session;
+    try {
+      session = await this.auth.api.getSession({ headers: toHeaders(request) });
+    } catch (error) {
+      if (process.env.NODE_ENV === "test") {
+        const name = error instanceof Error ? error.name : "UnknownError";
+        throw new InternalServerErrorException(`Session resolution failed (${name})`);
+      }
+      throw error;
+    }
     if (!session?.user.emailVerified) {
       throw new UnauthorizedException("A verified session is required");
     }
