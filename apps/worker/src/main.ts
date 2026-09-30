@@ -12,6 +12,9 @@ import {
   cleanupEvidenceUploadsJobName,
   systemQueueName,
   type CleanupEvidenceUploadsJob,
+  exportQueueName,
+  generateOperationalExportJobName,
+  type GenerateOperationalExportJob,
   reportQueueName,
   generateInspectionReportJobName,
   type GenerateInspectionReportJob,
@@ -26,6 +29,7 @@ import { processImport } from "./process-import.js";
 import { generateInspectionRuns } from "./generate-inspection-runs.js";
 import { dispatchInspectionNotifications } from "./inspection-notifications.js";
 import { cleanupExpiredEvidenceUploads } from "./evidence-cleanup.js";
+import { generateOperationalExport } from "./exports.js";
 import { generateInspectionReport } from "./reporting.js";
 
 function parseRedisConnection(redisUrl: string) {
@@ -77,6 +81,20 @@ const importWorker = new Worker<ProcessImportJob>(
   async (job) => {
     if (job.name !== processImportJobName) throw new Error(`Unsupported import job: ${job.name}`);
     await processImport(database.db, job.data.importJobId, job.data.organizationId);
+  },
+  { connection, concurrency: 2 },
+);
+const exportWorker = new Worker<GenerateOperationalExportJob>(
+  exportQueueName,
+  async (job) => {
+    if (job.name !== generateOperationalExportJobName)
+      throw new Error(`Unsupported export job: ${job.name}`);
+    await generateOperationalExport(
+      database.db,
+      storage,
+      job.data.exportRequestId,
+      job.data.organizationId,
+    );
   },
   { connection, concurrency: 2 },
 );
@@ -149,6 +167,7 @@ async function shutdown(signal: string): Promise<void> {
     importWorker.close(),
     inspectionWorker.close(),
     reportWorker.close(),
+    exportWorker.close(),
     inspectionQueue.close(),
     systemQueue.close(),
     systemWorker.close(),
@@ -185,6 +204,7 @@ async function bootstrap(): Promise<void> {
     emailWorker.waitUntilReady(),
     importWorker.waitUntilReady(),
     reportWorker.waitUntilReady(),
+    exportWorker.waitUntilReady(),
     inspectionWorker.waitUntilReady(),
     systemWorker.waitUntilReady(),
     transporter.verify(),

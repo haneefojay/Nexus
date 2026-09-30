@@ -9,10 +9,12 @@ import { NestFactory } from "@nestjs/core";
 import { FastifyAdapter, NestFastifyApplication } from "@nestjs/platform-fastify";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import {
+  exportQueueName,
   importQueueName,
   inspectionQueueName,
   reportQueueName,
   type GenerateInspectionReportJob,
+  type GenerateOperationalExportJob,
 } from "@nexus/contracts";
 import { Queue } from "bullmq";
 import { S3StorageProvider } from "@nexus/storage";
@@ -27,6 +29,9 @@ async function bootstrap(): Promise<void> {
   const database = createDatabase(environment.DATABASE_URL);
   const emailDispatcher = new QueuedAuthEmailDispatcher(environment.REDIS_URL);
   const importQueue = new Queue(importQueueName, {
+    connection: parseRedisConnection(environment.REDIS_URL),
+  });
+  const exportQueue = new Queue<GenerateOperationalExportJob>(exportQueueName, {
     connection: parseRedisConnection(environment.REDIS_URL),
   });
   const reportQueue = new Queue<GenerateInspectionReportJob>(reportQueueName, {
@@ -62,6 +67,7 @@ async function bootstrap(): Promise<void> {
       importQueue,
       inspectionQueue,
       reportQueue,
+      exportQueue,
       storage,
       webUrl: environment.WEB_URL,
     }),
@@ -105,6 +111,7 @@ async function bootstrap(): Promise<void> {
       importQueue.close(),
       inspectionQueue.close(),
       reportQueue.close(),
+      exportQueue.close(),
       database.close(),
     ]);
   };
