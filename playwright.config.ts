@@ -16,7 +16,7 @@ export default defineConfig({
     { name: "mobile-chromium", use: { ...devices["Pixel 7"] } },
   ],
   webServer: {
-    command: "pnpm --filter @nexus/web dev",
+    command: process.env.CI ? "pnpm --filter @nexus/web start" : "pnpm --filter @nexus/web dev",
     url: "http://127.0.0.1:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
