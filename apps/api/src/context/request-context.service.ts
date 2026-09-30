@@ -1,6 +1,6 @@
 import type { NexusAuth } from "@nexus/auth";
 import { and, eq, memberships, organizations, users, type createDatabase } from "@nexus/database";
-import { assertPermission, type MembershipRole, type PhaseOnePermission } from "@nexus/domain";
+import { assertPermission, type MembershipRole, type Permission } from "@nexus/domain";
 import { ForbiddenException, Inject, Injectable, UnauthorizedException } from "@nestjs/common";
 import type { FastifyRequest } from "fastify";
 
@@ -55,10 +55,7 @@ export class RequestContextService {
     };
   }
 
-  async requireTenant(
-    request: FastifyRequest,
-    permission: PhaseOnePermission,
-  ): Promise<TenantContext> {
+  async requireTenant(request: FastifyRequest, permission: Permission): Promise<TenantContext> {
     const actor = await this.requireActor(request);
     const header = request.headers["x-organization-id"];
     const organizationId = Array.isArray(header) ? header[0] : header;

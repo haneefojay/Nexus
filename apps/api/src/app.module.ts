@@ -13,11 +13,14 @@ import { MembershipsController } from "./memberships/memberships.controller.js";
 import { MembershipsService } from "./memberships/memberships.service.js";
 import { OperationsController } from "./operations/operations.controller.js";
 import { OperationsService } from "./operations/operations.service.js";
+import { InspectionsController } from "./inspections/inspections.controller.js";
+import { InspectionsService } from "./inspections/inspections.service.js";
 import {
   AUTH_TOKEN,
   DATABASE_TOKEN,
   EMAIL_DISPATCHER_TOKEN,
   IMPORT_QUEUE_TOKEN,
+  INSPECTION_QUEUE_TOKEN,
   WEB_URL_TOKEN,
 } from "./tokens.js";
 
@@ -26,6 +29,7 @@ export interface AppDependencies {
   db: ReturnType<typeof createDatabase>["db"];
   emailDispatcher: AuthEmailDispatcher;
   importQueue: Queue;
+  inspectionQueue: Queue;
   webUrl: string;
 }
 
@@ -39,6 +43,7 @@ export class AppModule {
         OrganizationsController,
         MembershipsController,
         OperationsController,
+        InspectionsController,
       ],
       providers: [
         ReadinessService,
@@ -46,6 +51,7 @@ export class AppModule {
         { provide: DATABASE_TOKEN, useValue: dependencies.db },
         { provide: EMAIL_DISPATCHER_TOKEN, useValue: dependencies.emailDispatcher },
         { provide: IMPORT_QUEUE_TOKEN, useValue: dependencies.importQueue },
+        { provide: INSPECTION_QUEUE_TOKEN, useValue: dependencies.inspectionQueue },
         { provide: WEB_URL_TOKEN, useValue: dependencies.webUrl },
         {
           provide: RequestContextService,
@@ -68,6 +74,12 @@ export class AppModule {
           provide: OperationsService,
           inject: [DATABASE_TOKEN, IMPORT_QUEUE_TOKEN],
           useFactory: (db: AppDependencies["db"], queue: Queue) => new OperationsService(db, queue),
+        },
+        {
+          provide: InspectionsService,
+          inject: [DATABASE_TOKEN, INSPECTION_QUEUE_TOKEN],
+          useFactory: (db: AppDependencies["db"], queue: Queue) =>
+            new InspectionsService(db, queue),
         },
       ],
     };

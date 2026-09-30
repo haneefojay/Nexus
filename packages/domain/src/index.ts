@@ -346,6 +346,73 @@ export function isInspectionOverdue(dueAt: Date, status: InspectionRunStatus, no
   );
 }
 
+export interface InspectionCoverageRecord {
+  siteId: string;
+  scheduledFor: Date;
+  dueAt: Date;
+  status: InspectionRunStatus;
+}
+
+export interface InspectionCoverage {
+  siteId: string;
+  required: number;
+  completed: number;
+  overdue: number;
+  skipped: number;
+  completionRate: number;
+}
+
+export function calculateInspectionCoverage(
+  records: readonly InspectionCoverageRecord[],
+  now: Date,
+): InspectionCoverage[] {
+  const coverage = new Map<string, Omit<InspectionCoverage, "completionRate">>();
+  for (const record of records) {
+    if (record.scheduledFor > now) continue;
+    const current = coverage.get(record.siteId) ?? {
+      siteId: record.siteId,
+      required: 0,
+      completed: 0,
+      overdue: 0,
+      skipped: 0,
+    };
+    current.required += 1;
+    if (record.status === "CLOSED") current.completed += 1;
+    if (record.status === "CANCELLED") current.skipped += 1;
+    if (isInspectionOverdue(record.dueAt, record.status, now)) current.overdue += 1;
+    coverage.set(record.siteId, current);
+  }
+  return [...coverage.values()]
+    .map((value) => ({
+      ...value,
+      completionRate: value.required === 0 ? 1 : value.completed / value.required,
+    }))
+    .sort((left, right) => left.siteId.localeCompare(right.siteId));
+}
+
+export type InspectionAttentionSource =
+  | "CRITICAL_FINDING"
+  | "HIGH_FINDING"
+  | "OVERDUE_CORRECTIVE_ACTION"
+  | "OVERDUE_INSPECTION"
+  | "ASSET_ATTENTION";
+
+const attentionPriority: Record<InspectionAttentionSource, number> = {
+  CRITICAL_FINDING: 1,
+  HIGH_FINDING: 2,
+  OVERDUE_CORRECTIVE_ACTION: 3,
+  OVERDUE_INSPECTION: 4,
+  ASSET_ATTENTION: 5,
+};
+
+export function sortInspectionAttention<T extends { source: InspectionAttentionSource }>(
+  attention: readonly T[],
+): T[] {
+  return [...attention].sort(
+    (left, right) => attentionPriority[left.source] - attentionPriority[right.source],
+  );
+}
+
 export function assertSiteTransition(from: SiteStatus, to: SiteStatus): void {
   if (from === to) return;
   if (!siteTransitions[from].includes(to)) {
@@ -366,7 +433,7 @@ export function assertAssetTransition(from: AssetStatus, to: AssetStatus): void 
   }
 }
 
-export type PhaseOnePermission =
+export type Permission =
   | "organization:read"
   | "members:manage"
   | "sites:read"
@@ -374,9 +441,19 @@ export type PhaseOnePermission =
   | "assets:read"
   | "assets:manage"
   | "imports:manage"
-  | "map:read";
+  | "map:read"
+  | "inspection-templates:read"
+  | "inspection-templates:manage"
+  | "inspection-plans:read"
+  | "inspection-plans:manage"
+  | "inspection-runs:read"
+  | "inspection-runs:execute"
+  | "inspection-runs:review"
+  | "inspection-dashboard:read";
 
-const rolePermissions: Record<MembershipRole, ReadonlySet<PhaseOnePermission>> = {
+export type PhaseOnePermission = Permission;
+
+const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
   OWNER: new Set([
     "organization:read",
     "members:manage",
@@ -386,6 +463,14 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<PhaseOnePermission>> =
     "assets:manage",
     "imports:manage",
     "map:read",
+    "inspection-templates:read",
+    "inspection-templates:manage",
+    "inspection-plans:read",
+    "inspection-plans:manage",
+    "inspection-runs:read",
+    "inspection-runs:execute",
+    "inspection-runs:review",
+    "inspection-dashboard:read",
   ]),
   OPERATIONS_MANAGER: new Set([
     "organization:read",
@@ -395,17 +480,55 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<PhaseOnePermission>> =
     "assets:manage",
     "imports:manage",
     "map:read",
+    "inspection-templates:read",
+    "inspection-templates:manage",
+    "inspection-plans:read",
+    "inspection-plans:manage",
+    "inspection-runs:read",
+    "inspection-runs:execute",
+    "inspection-runs:review",
+    "inspection-dashboard:read",
   ]),
-  SUPERVISOR: new Set(["organization:read", "sites:read", "assets:read", "map:read"]),
-  TECHNICIAN: new Set(["organization:read", "sites:read", "assets:read", "map:read"]),
-  VIEWER: new Set(["organization:read", "sites:read", "assets:read", "map:read"]),
+  SUPERVISOR: new Set([
+    "organization:read",
+    "sites:read",
+    "assets:read",
+    "map:read",
+    "inspection-templates:read",
+    "inspection-plans:read",
+    "inspection-runs:read",
+    "inspection-runs:execute",
+    "inspection-runs:review",
+    "inspection-dashboard:read",
+  ]),
+  TECHNICIAN: new Set([
+    "organization:read",
+    "sites:read",
+    "assets:read",
+    "map:read",
+    "inspection-templates:read",
+    "inspection-plans:read",
+    "inspection-runs:read",
+    "inspection-runs:execute",
+    "inspection-dashboard:read",
+  ]),
+  VIEWER: new Set([
+    "organization:read",
+    "sites:read",
+    "assets:read",
+    "map:read",
+    "inspection-templates:read",
+    "inspection-plans:read",
+    "inspection-runs:read",
+    "inspection-dashboard:read",
+  ]),
 };
 
-export function hasPermission(role: MembershipRole, permission: PhaseOnePermission): boolean {
+export function hasPermission(role: MembershipRole, permission: Permission): boolean {
   return rolePermissions[role].has(permission);
 }
 
-export function assertPermission(role: MembershipRole, permission: PhaseOnePermission): void {
+export function assertPermission(role: MembershipRole, permission: Permission): void {
   if (!hasPermission(role, permission)) {
     throw new DomainRuleError(
       "AUTHORIZATION_DENIED",

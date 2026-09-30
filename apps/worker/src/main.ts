@@ -3,9 +3,12 @@ import {
   authEmailJobName,
   emailQueueName,
   importQueueName,
+  inspectionQueueName,
+  generateInspectionRunsJobName,
   processImportJobName,
   type AuthEmailJob,
   type ProcessImportJob,
+  type GenerateInspectionRunsJob,
 } from "@nexus/contracts";
 import { createDatabase } from "@nexus/database";
 import { Queue, Worker } from "bullmq";
@@ -13,6 +16,7 @@ import nodemailer from "nodemailer";
 
 import { renderAuthEmail } from "./auth-email.js";
 import { processImport } from "./process-import.js";
+import { generateInspectionRuns } from "./generate-inspection-runs.js";
 
 function parseRedisConnection(redisUrl: string) {
   const parsed = new URL(redisUrl);
@@ -58,6 +62,16 @@ const importWorker = new Worker<ProcessImportJob>(
   },
   { connection, concurrency: 2 },
 );
+const inspectionQueue = new Queue<GenerateInspectionRunsJob>(inspectionQueueName, { connection });
+const inspectionWorker = new Worker<GenerateInspectionRunsJob>(
+  inspectionQueueName,
+  async (job) => {
+    if (job.name !== generateInspectionRunsJobName)
+      throw new Error(`Unsupported inspection job: ${job.name}`);
+    await generateInspectionRuns(database.db, job.data);
+  },
+  { connection, concurrency: 2 },
+);
 
 let shuttingDown = false;
 
@@ -68,6 +82,8 @@ async function shutdown(signal: string): Promise<void> {
   await Promise.allSettled([
     emailWorker.close(),
     importWorker.close(),
+    inspectionWorker.close(),
+    inspectionQueue.close(),
     systemQueue.close(),
     database.close(),
   ]);
@@ -76,10 +92,21 @@ async function shutdown(signal: string): Promise<void> {
 }
 
 async function bootstrap(): Promise<void> {
+  await inspectionQueue.add(
+    generateInspectionRunsJobName,
+    { horizonDays: 35, requestedAt: new Date().toISOString() },
+    {
+      jobId: "bounded-upcoming-generation",
+      repeat: { every: 60 * 60 * 1_000 },
+      attempts: 5,
+      backoff: { type: "exponential", delay: 1_000 },
+    },
+  );
   await Promise.all([
     systemQueue.waitUntilReady(),
     emailWorker.waitUntilReady(),
     importWorker.waitUntilReady(),
+    inspectionWorker.waitUntilReady(),
     transporter.verify(),
   ]);
   console.info(JSON.stringify({ level: "info", service: "worker", event: "ready" }));

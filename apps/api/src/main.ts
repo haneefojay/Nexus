@@ -8,7 +8,7 @@ import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { FastifyAdapter, NestFastifyApplication } from "@nestjs/platform-fastify";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
-import { importQueueName } from "@nexus/contracts";
+import { importQueueName, inspectionQueueName } from "@nexus/contracts";
 import { Queue } from "bullmq";
 import { parseRedisConnection } from "./infrastructure/redis-connection.js";
 
@@ -21,6 +21,9 @@ async function bootstrap(): Promise<void> {
   const database = createDatabase(environment.DATABASE_URL);
   const emailDispatcher = new QueuedAuthEmailDispatcher(environment.REDIS_URL);
   const importQueue = new Queue(importQueueName, {
+    connection: parseRedisConnection(environment.REDIS_URL),
+  });
+  const inspectionQueue = new Queue(inspectionQueueName, {
     connection: parseRedisConnection(environment.REDIS_URL),
   });
   const auth = createNexusAuth({
@@ -39,6 +42,7 @@ async function bootstrap(): Promise<void> {
       db: database.db,
       emailDispatcher,
       importQueue,
+      inspectionQueue,
       webUrl: environment.WEB_URL,
     }),
     adapter,
@@ -76,7 +80,12 @@ async function bootstrap(): Promise<void> {
   const closeResources = async (): Promise<void> => {
     if (resourcesClosed) return;
     resourcesClosed = true;
-    await Promise.allSettled([emailDispatcher.close(), importQueue.close(), database.close()]);
+    await Promise.allSettled([
+      emailDispatcher.close(),
+      importQueue.close(),
+      inspectionQueue.close(),
+      database.close(),
+    ]);
   };
   process.once("SIGINT", () => void closeResources());
   process.once("SIGTERM", () => void closeResources());

@@ -5,6 +5,7 @@ import {
   check,
   customType,
   date,
+  doublePrecision,
   foreignKey,
   index,
   integer,
@@ -60,6 +61,35 @@ export const importStatusEnum = pgEnum("import_status", [
   "PROCESSING",
   "COMPLETED",
   "FAILED",
+]);
+export const inspectionTemplateStatusEnum = pgEnum("inspection_template_status", [
+  "DRAFT",
+  "PUBLISHED",
+  "ARCHIVED",
+]);
+export const inspectionTargetTypeEnum = pgEnum("inspection_target_type", ["SITE", "ASSET"]);
+export const inspectionRecurrenceTypeEnum = pgEnum("inspection_recurrence_type", [
+  "DAILY",
+  "WEEKLY",
+  "MONTHLY",
+  "QUARTERLY",
+  "CUSTOM_DAYS",
+]);
+export const inspectionRunStatusEnum = pgEnum("inspection_run_status", [
+  "ASSIGNED",
+  "READY",
+  "IN_PROGRESS",
+  "SUBMITTED",
+  "REVIEW_REQUIRED",
+  "APPROVED",
+  "CLOSED",
+  "CANCELLED",
+]);
+export const findingSeverityEnum = pgEnum("finding_severity", [
+  "LOW",
+  "MEDIUM",
+  "HIGH",
+  "CRITICAL",
 ]);
 
 export const users = pgTable(
@@ -423,4 +453,258 @@ export const importRowErrors = pgTable(
     createdAt: createdAt(),
   },
   (table) => [index("import_row_errors_job_row_idx").on(table.importJobId, table.rowNumber)],
+);
+
+export const inspectionTemplates = pgTable(
+  "inspection_templates",
+  {
+    id: id(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "restrict" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    category: text("category"),
+    status: inspectionTemplateStatusEnum("status").notNull().default("DRAFT"),
+    draftSchema: jsonb("draft_schema")
+      .notNull()
+      .default(sql`'{"sections":[]}'::jsonb`),
+    latestVersion: integer("latest_version").notNull().default(0),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+  },
+  (table) => [
+    unique("inspection_templates_organization_id_unique").on(table.organizationId, table.id),
+    uniqueIndex("inspection_templates_organization_name_unique")
+      .on(table.organizationId, table.name)
+      .where(sql`${table.status} <> 'ARCHIVED'`),
+    index("inspection_templates_organization_status_idx").on(table.organizationId, table.status),
+    check(
+      "inspection_templates_archive_consistent",
+      sql`(${table.status} = 'ARCHIVED' and ${table.archivedAt} is not null) or (${table.status} <> 'ARCHIVED' and ${table.archivedAt} is null)`,
+    ),
+  ],
+);
+
+export const inspectionTemplateVersions = pgTable(
+  "inspection_template_versions",
+  {
+    id: id(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "restrict" }),
+    templateId: uuid("template_id").notNull(),
+    versionNumber: integer("version_number").notNull(),
+    schema: jsonb("schema").notNull(),
+    checksum: text("checksum").notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    unique("inspection_template_versions_organization_id_unique").on(
+      table.organizationId,
+      table.id,
+    ),
+    unique("inspection_template_versions_number_unique").on(table.templateId, table.versionNumber),
+    unique("inspection_template_versions_checksum_unique").on(table.templateId, table.checksum),
+    foreignKey({
+      name: "inspection_template_versions_template_tenant_fk",
+      columns: [table.organizationId, table.templateId],
+      foreignColumns: [inspectionTemplates.organizationId, inspectionTemplates.id],
+    }).onDelete("restrict"),
+    index("inspection_template_versions_template_idx").on(table.templateId, table.versionNumber),
+    check("inspection_template_versions_number_positive", sql`${table.versionNumber} > 0`),
+  ],
+);
+
+export const inspectionPlans = pgTable(
+  "inspection_plans",
+  {
+    id: id(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "restrict" }),
+    templateVersionId: uuid("template_version_id").notNull(),
+    name: text("name").notNull(),
+    targetType: inspectionTargetTypeEnum("target_type").notNull(),
+    siteId: uuid("site_id").notNull(),
+    assetId: uuid("asset_id"),
+    recurrenceType: inspectionRecurrenceTypeEnum("recurrence_type").notNull(),
+    intervalDays: integer("interval_days"),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }),
+    assignedUserId: uuid("assigned_user_id").references(() => users.id, { onDelete: "restrict" }),
+    assignedRole: membershipRoleEnum("assigned_role"),
+    dueWindowMinutes: integer("due_window_minutes").notNull().default(1440),
+    requiresReview: boolean("requires_review").notNull().default(false),
+    active: boolean("active").notNull().default(true),
+    nextSequence: integer("next_sequence").notNull().default(0),
+    nextDueAt: timestamp("next_due_at", { withTimezone: true }).notNull(),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    unique("inspection_plans_organization_id_unique").on(table.organizationId, table.id),
+    foreignKey({
+      name: "inspection_plans_template_version_tenant_fk",
+      columns: [table.organizationId, table.templateVersionId],
+      foreignColumns: [inspectionTemplateVersions.organizationId, inspectionTemplateVersions.id],
+    }).onDelete("restrict"),
+    foreignKey({
+      name: "inspection_plans_site_tenant_fk",
+      columns: [table.organizationId, table.siteId],
+      foreignColumns: [sites.organizationId, sites.id],
+    }).onDelete("restrict"),
+    foreignKey({
+      name: "inspection_plans_asset_tenant_site_fk",
+      columns: [table.organizationId, table.siteId, table.assetId],
+      foreignColumns: [assets.organizationId, assets.siteId, assets.id],
+    }).onDelete("restrict"),
+    index("inspection_plans_generation_idx").on(table.active, table.nextDueAt),
+    index("inspection_plans_organization_active_idx").on(table.organizationId, table.active),
+    check(
+      "inspection_plans_target_consistent",
+      sql`(${table.targetType} = 'SITE' and ${table.assetId} is null) or (${table.targetType} = 'ASSET' and ${table.assetId} is not null)`,
+    ),
+    check(
+      "inspection_plans_custom_interval_consistent",
+      sql`(${table.recurrenceType} = 'CUSTOM_DAYS' and ${table.intervalDays} > 0) or (${table.recurrenceType} <> 'CUSTOM_DAYS' and ${table.intervalDays} is null)`,
+    ),
+    check(
+      "inspection_plans_assignment_present",
+      sql`${table.assignedUserId} is not null or ${table.assignedRole} is not null`,
+    ),
+    check("inspection_plans_due_window_positive", sql`${table.dueWindowMinutes} > 0`),
+    check("inspection_plans_sequence_nonnegative", sql`${table.nextSequence} >= 0`),
+    check(
+      "inspection_plans_end_after_start",
+      sql`${table.endsAt} is null or ${table.endsAt} >= ${table.startsAt}`,
+    ),
+  ],
+);
+
+export const inspectionRuns = pgTable(
+  "inspection_runs",
+  {
+    id: id(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "restrict" }),
+    inspectionPlanId: uuid("inspection_plan_id").notNull(),
+    templateVersionId: uuid("template_version_id").notNull(),
+    siteId: uuid("site_id").notNull(),
+    assetId: uuid("asset_id"),
+    assignedTo: uuid("assigned_to")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    sequence: integer("sequence").notNull(),
+    status: inspectionRunStatusEnum("status").notNull().default("ASSIGNED"),
+    scheduledFor: timestamp("scheduled_for", { withTimezone: true }).notNull(),
+    dueAt: timestamp("due_at", { withTimezone: true }).notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+    startedOffline: boolean("started_offline").notNull().default(false),
+    submittedOffline: boolean("submitted_offline").notNull().default(false),
+    clientDeviceId: text("client_device_id"),
+    notes: text("notes"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    unique("inspection_runs_organization_id_unique").on(table.organizationId, table.id),
+    unique("inspection_runs_plan_sequence_unique").on(table.inspectionPlanId, table.sequence),
+    foreignKey({
+      name: "inspection_runs_plan_tenant_fk",
+      columns: [table.organizationId, table.inspectionPlanId],
+      foreignColumns: [inspectionPlans.organizationId, inspectionPlans.id],
+    }).onDelete("restrict"),
+    foreignKey({
+      name: "inspection_runs_template_version_tenant_fk",
+      columns: [table.organizationId, table.templateVersionId],
+      foreignColumns: [inspectionTemplateVersions.organizationId, inspectionTemplateVersions.id],
+    }).onDelete("restrict"),
+    foreignKey({
+      name: "inspection_runs_site_tenant_fk",
+      columns: [table.organizationId, table.siteId],
+      foreignColumns: [sites.organizationId, sites.id],
+    }).onDelete("restrict"),
+    foreignKey({
+      name: "inspection_runs_asset_tenant_site_fk",
+      columns: [table.organizationId, table.siteId, table.assetId],
+      foreignColumns: [assets.organizationId, assets.siteId, assets.id],
+    }).onDelete("restrict"),
+    index("inspection_runs_organization_due_idx").on(
+      table.organizationId,
+      table.status,
+      table.dueAt,
+    ),
+    index("inspection_runs_assignee_status_idx").on(table.assignedTo, table.status, table.dueAt),
+    check("inspection_runs_sequence_nonnegative", sql`${table.sequence} >= 0`),
+    check("inspection_runs_due_after_schedule", sql`${table.dueAt} >= ${table.scheduledFor}`),
+  ],
+);
+
+export const inspectionResponses = pgTable(
+  "inspection_responses",
+  {
+    id: id(),
+    organizationId: uuid("organization_id").notNull(),
+    inspectionRunId: uuid("inspection_run_id").notNull(),
+    itemId: text("item_id").notNull(),
+    value: jsonb("value").notNull(),
+    numericValue: doublePrecision("numeric_value"),
+    textValue: text("text_value"),
+    selectedOption: text("selected_option"),
+    capturedAt: timestamp("captured_at", { withTimezone: true }).notNull().defaultNow(),
+    capturedBy: uuid("captured_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    evidenceRequired: boolean("evidence_required").notNull().default(false),
+  },
+  (table) => [
+    unique("inspection_responses_run_item_unique").on(table.inspectionRunId, table.itemId),
+    foreignKey({
+      name: "inspection_responses_run_tenant_fk",
+      columns: [table.organizationId, table.inspectionRunId],
+      foreignColumns: [inspectionRuns.organizationId, inspectionRuns.id],
+    }).onDelete("restrict"),
+    index("inspection_responses_run_idx").on(table.inspectionRunId),
+  ],
+);
+
+export const inspectionFindings = pgTable(
+  "inspection_findings",
+  {
+    id: id(),
+    organizationId: uuid("organization_id").notNull(),
+    inspectionRunId: uuid("inspection_run_id").notNull(),
+    itemId: text("item_id"),
+    title: text("title").notNull(),
+    notes: text("notes"),
+    severity: findingSeverityEnum("severity").notNull(),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    foreignKey({
+      name: "inspection_findings_run_tenant_fk",
+      columns: [table.organizationId, table.inspectionRunId],
+      foreignColumns: [inspectionRuns.organizationId, inspectionRuns.id],
+    }).onDelete("restrict"),
+    index("inspection_findings_run_idx").on(table.inspectionRunId),
+    index("inspection_findings_attention_idx").on(table.organizationId, table.severity),
+  ],
 );

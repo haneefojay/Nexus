@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   DomainRuleError,
   assertInspectionRunTransition,
+  calculateInspectionCoverage,
   inspectionOccurrenceAt,
   isInspectionOverdue,
+  sortInspectionAttention,
   validateInspectionResponses,
   type InspectionTemplateItemDefinition,
 } from "../../src/index.js";
@@ -106,5 +108,56 @@ describe("inspection recurrence and deadlines", () => {
     expect(isInspectionOverdue(dueAt, "IN_PROGRESS", new Date(dueAt))).toBe(false);
     expect(isInspectionOverdue(dueAt, "IN_PROGRESS", new Date(dueAt.getTime() + 1))).toBe(true);
     expect(isInspectionOverdue(dueAt, "SUBMITTED", new Date(dueAt.getTime() + 1))).toBe(false);
+  });
+});
+
+describe("inspection operational calculations", () => {
+  const now = new Date("2026-09-30T10:00:00.000Z");
+
+  it("counts only scheduled runs and never counts in-progress work as completed", () => {
+    expect(
+      calculateInspectionCoverage(
+        [
+          {
+            siteId: "site-a",
+            scheduledFor: new Date("2026-09-29T09:00:00.000Z"),
+            dueAt: new Date("2026-09-29T10:00:00.000Z"),
+            status: "CLOSED",
+          },
+          {
+            siteId: "site-a",
+            scheduledFor: new Date("2026-09-30T09:00:00.000Z"),
+            dueAt: new Date("2026-09-30T09:59:59.000Z"),
+            status: "IN_PROGRESS",
+          },
+          {
+            siteId: "site-a",
+            scheduledFor: new Date("2026-10-01T09:00:00.000Z"),
+            dueAt: new Date("2026-10-01T10:00:00.000Z"),
+            status: "ASSIGNED",
+          },
+        ],
+        now,
+      ),
+    ).toEqual([
+      {
+        siteId: "site-a",
+        required: 2,
+        completed: 1,
+        overdue: 1,
+        skipped: 0,
+        completionRate: 0.5,
+      },
+    ]);
+  });
+
+  it("orders attention using the explicit operational priority", () => {
+    expect(
+      sortInspectionAttention([
+        { source: "ASSET_ATTENTION", id: "asset" },
+        { source: "OVERDUE_INSPECTION", id: "inspection" },
+        { source: "CRITICAL_FINDING", id: "finding" },
+      ]).map((item) => item.id),
+    ).toEqual(["finding", "inspection", "asset"]);
   });
 });
