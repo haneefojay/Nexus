@@ -26,6 +26,12 @@ worker_pid=""
 on_error() {
   local exit_code=$?
   {
+    echo "line=$1"
+    echo "command=$2"
+    echo "api=$(tail -n 20 "$api_log" 2>/dev/null | tr '\n' ' ' | tail -c 2000)"
+    echo "worker=$(tail -n 20 "$worker_log" 2>/dev/null | tr '\n' ' ' | tail -c 2000)"
+  } >/tmp/phase-two-inspections-failure.txt
+  {
     echo "### Phase 2 inspection smoke failure"
     echo
     echo "- Line: \`$1\`"
