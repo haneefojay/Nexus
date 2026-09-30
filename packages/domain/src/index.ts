@@ -593,6 +593,8 @@ export type Permission =
   | "actions:verify"
   | "evidence:read"
   | "evidence:manage"
+  | "exports:read"
+  | "exports:manage"
   | "reports:read"
   | "reports:manage"
   | "search:read";
@@ -626,6 +628,8 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     "actions:verify",
     "evidence:read",
     "evidence:manage",
+    "exports:read",
+    "exports:manage",
     "reports:read",
     "reports:manage",
     "search:read",
@@ -655,6 +659,8 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     "actions:verify",
     "evidence:read",
     "evidence:manage",
+    "exports:read",
+    "exports:manage",
     "reports:read",
     "reports:manage",
     "search:read",
@@ -678,6 +684,8 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     "actions:verify",
     "evidence:read",
     "evidence:manage",
+    "exports:read",
+    "exports:manage",
     "reports:read",
     "reports:manage",
     "search:read",
@@ -697,6 +705,7 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     "actions:execute",
     "evidence:read",
     "evidence:manage",
+    "exports:read",
     "reports:read",
     "reports:manage",
     "search:read",
@@ -713,6 +722,7 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     "findings:read",
     "actions:read",
     "evidence:read",
+    "exports:read",
     "reports:read",
     "search:read",
   ]),

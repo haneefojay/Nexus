@@ -144,6 +144,14 @@ export const inspectionNotificationStatusEnum = pgEnum("inspection_notification_
   "FAILED",
 ]);
 export const fieldDeviceStatusEnum = pgEnum("field_device_status", ["ACTIVE", "REVOKED"]);
+export const exportTypeEnum = pgEnum("export_type", ["ASSETS", "FINDINGS", "INSPECTIONS"]);
+export const exportStatusEnum = pgEnum("export_status", [
+  "QUEUED",
+  "PROCESSING",
+  "COMPLETED",
+  "FAILED",
+  "EXPIRED",
+]);
 export const reportStatusEnum = pgEnum("report_status", [
   "QUEUED",
   "PROCESSING",
@@ -1025,6 +1033,50 @@ export const evidence = pgTable(
     }).onDelete("restrict"),
     unique("evidence_storage_object_unique").on(table.storageObjectId),
     index("evidence_target_idx").on(table.organizationId, table.targetType, table.targetId),
+  ],
+);
+
+export const exportRequests = pgTable(
+  "export_requests",
+  {
+    id: id(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "restrict" }),
+    exportType: exportTypeEnum("export_type").notNull(),
+    requestedBy: uuid("requested_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    status: exportStatusEnum("status").notNull().default("QUEUED"),
+    snapshot: jsonb("snapshot").notNull(),
+    snapshotHash: text("snapshot_hash").notNull(),
+    objectKey: text("object_key"),
+    checksum: text("checksum"),
+    size: bigint("size", { mode: "number" }),
+    rowCount: integer("row_count").notNull(),
+    errorCode: text("error_code"),
+    attemptCount: integer("attempt_count").notNull().default(0),
+    createdAt: createdAt(),
+    processingAt: timestamp("processing_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    unique("export_requests_organization_id_unique").on(table.organizationId, table.id),
+    unique("export_requests_snapshot_unique").on(
+      table.organizationId,
+      table.exportType,
+      table.requestedBy,
+      table.snapshotHash,
+    ),
+    index("export_requests_status_idx").on(table.organizationId, table.status, table.createdAt),
+    check("export_requests_row_count_nonnegative", sql`${table.rowCount} >= 0`),
+    check("export_requests_attempt_nonnegative", sql`${table.attemptCount} >= 0`),
+    check(
+      "export_requests_completed_artifact",
+      sql`${table.status} <> 'COMPLETED' or (${table.objectKey} is not null and ${table.checksum} is not null and ${table.completedAt} is not null)`,
+    ),
   ],
 );
 

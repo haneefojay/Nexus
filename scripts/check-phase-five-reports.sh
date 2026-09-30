@@ -42,6 +42,26 @@ BEGIN
   EXCEPTION WHEN check_violation THEN NULL;
   END;
 END $$;
+DO $$
+DECLARE
+  actor_id uuid := uuidv7(); org_id uuid := uuidv7(); export_id uuid := uuidv7();
+BEGIN
+  INSERT INTO users (id,email,name,email_verified) VALUES (actor_id,'phase5-export@nexus.local','Phase Five Export',true);
+  INSERT INTO organizations (id,name,slug,timezone) VALUES (org_id,'Phase Five Export','phase-five-export','UTC');
+  INSERT INTO export_requests (id,organization_id,export_type,requested_by,snapshot,snapshot_hash,row_count)
+    VALUES (export_id,org_id,'ASSETS',actor_id,'{"columns":[],"rows":[]}',repeat('d',64),0);
+  BEGIN
+    INSERT INTO export_requests (organization_id,export_type,requested_by,snapshot,snapshot_hash,row_count)
+      VALUES (org_id,'ASSETS',actor_id,'{"columns":[],"rows":[]}',repeat('d',64),0);
+    RAISE EXCEPTION 'export snapshot deduplication did not fail';
+  EXCEPTION WHEN unique_violation THEN NULL;
+  END;
+  BEGIN
+    UPDATE export_requests SET status='COMPLETED' WHERE id=export_id;
+    RAISE EXCEPTION 'completed export artifact invariant did not fail';
+  EXCEPTION WHEN check_violation THEN NULL;
+  END;
+END $$;
 ROLLBACK;
 SQL
-echo "Phase 5 report deduplication, artifact, and tenant constraints are healthy."
+echo "Phase 5 report/export deduplication, artifact, and tenant constraints are healthy."

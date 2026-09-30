@@ -28,6 +28,14 @@ export interface GenerateInspectionRunsJob {
   requestedAt: string;
 }
 
+export const exportQueueName = "nexus-exports" as const;
+export const generateOperationalExportJobName = "generate-operational-export" as const;
+export interface GenerateOperationalExportJob {
+  exportRequestId: string;
+  organizationId: string;
+  correlationId: string;
+}
+
 export const reportQueueName = "nexus-reports" as const;
 export const generateInspectionReportJobName = "generate-inspection-report" as const;
 export interface GenerateInspectionReportJob {
