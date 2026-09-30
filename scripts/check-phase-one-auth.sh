@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -eEuo pipefail
+trap 'echo "::error title=Phase 1 smoke failure::Command failed at line $LINENO: $BASH_COMMAND"' ERR
 
 export NODE_ENV=test
 export WEB_URL=http://localhost:3000
