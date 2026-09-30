@@ -3,6 +3,8 @@ CREATE TYPE "inspection_target_type" AS ENUM ('SITE', 'ASSET');
 CREATE TYPE "inspection_recurrence_type" AS ENUM ('DAILY', 'WEEKLY', 'MONTHLY', 'QUARTERLY', 'CUSTOM_DAYS');
 CREATE TYPE "inspection_run_status" AS ENUM ('ASSIGNED', 'READY', 'IN_PROGRESS', 'SUBMITTED', 'REVIEW_REQUIRED', 'APPROVED', 'CLOSED', 'CANCELLED');
 CREATE TYPE "finding_severity" AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL');
+CREATE TYPE "inspection_notification_kind" AS ENUM ('ASSIGNMENT', 'DUE', 'OVERDUE');
+CREATE TYPE "inspection_notification_status" AS ENUM ('PENDING', 'SENDING', 'SENT', 'CANCELLED');
 
 CREATE TABLE "inspection_templates" (
   "id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
@@ -160,6 +162,28 @@ CREATE TABLE "inspection_responses" (
     REFERENCES "inspection_runs"("organization_id", "id") ON DELETE RESTRICT
 );
 CREATE INDEX "inspection_responses_run_idx" ON "inspection_responses" ("inspection_run_id");
+
+CREATE TABLE "inspection_notification_intents" (
+  "id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
+  "organization_id" uuid NOT NULL,
+  "inspection_run_id" uuid NOT NULL,
+  "recipient_user_id" uuid NOT NULL REFERENCES "users"("id") ON DELETE RESTRICT,
+  "kind" "inspection_notification_kind" NOT NULL,
+  "status" "inspection_notification_status" DEFAULT 'PENDING' NOT NULL,
+  "dedupe_key" text NOT NULL UNIQUE,
+  "scheduled_for" timestamptz NOT NULL,
+  "attempts" integer DEFAULT 0 NOT NULL,
+  "last_error" text,
+  "sent_at" timestamptz,
+  "created_at" timestamptz DEFAULT now() NOT NULL,
+  "updated_at" timestamptz DEFAULT now() NOT NULL,
+  CONSTRAINT "inspection_notification_intents_run_tenant_fk"
+    FOREIGN KEY ("organization_id", "inspection_run_id")
+    REFERENCES "inspection_runs"("organization_id", "id") ON DELETE RESTRICT,
+  CONSTRAINT "inspection_notification_intents_attempts_nonnegative" CHECK ("attempts" >= 0)
+);
+CREATE INDEX "inspection_notification_intents_dispatch_idx"
+  ON "inspection_notification_intents" ("status", "scheduled_for");
 
 CREATE TABLE "inspection_findings" (
   "id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,

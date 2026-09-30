@@ -17,6 +17,7 @@ import nodemailer from "nodemailer";
 import { renderAuthEmail } from "./auth-email.js";
 import { processImport } from "./process-import.js";
 import { generateInspectionRuns } from "./generate-inspection-runs.js";
+import { dispatchInspectionNotifications } from "./inspection-notifications.js";
 
 function parseRedisConnection(redisUrl: string) {
   const parsed = new URL(redisUrl);
@@ -69,6 +70,12 @@ const inspectionWorker = new Worker<GenerateInspectionRunsJob>(
     if (job.name !== generateInspectionRunsJobName)
       throw new Error(`Unsupported inspection job: ${job.name}`);
     await generateInspectionRuns(database.db, job.data);
+    await dispatchInspectionNotifications(
+      database.db,
+      transporter,
+      environment.EMAIL_FROM,
+      new Date(job.data.requestedAt),
+    );
   },
   { connection, concurrency: 2 },
 );

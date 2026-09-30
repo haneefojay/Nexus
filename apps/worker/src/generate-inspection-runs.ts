@@ -4,6 +4,7 @@ import {
   and,
   eq,
   inspectionPlans,
+  inspectionNotificationIntents,
   inspectionRuns,
   lte,
   memberships,
@@ -91,7 +92,7 @@ export async function generateInspectionRuns(
             target: [inspectionRuns.inspectionPlanId, inspectionRuns.sequence],
           })
           .returning({ id: inspectionRuns.id });
-        if (rows[0])
+        if (rows[0]) {
           await transaction.insert(activityEvents).values({
             organizationId: plan.organizationId,
             actorUserId: null,
@@ -100,6 +101,36 @@ export async function generateInspectionRuns(
             resourceId: rows[0].id,
             metadata: { planId: plan.id, sequence },
           });
+          await transaction
+            .insert(inspectionNotificationIntents)
+            .values([
+              {
+                organizationId: plan.organizationId,
+                inspectionRunId: rows[0].id,
+                recipientUserId: assignedTo,
+                kind: "ASSIGNMENT",
+                dedupeKey: `${rows[0].id}:ASSIGNMENT:${assignedTo}`,
+                scheduledFor: requestedAt,
+              },
+              {
+                organizationId: plan.organizationId,
+                inspectionRunId: rows[0].id,
+                recipientUserId: assignedTo,
+                kind: "DUE",
+                dedupeKey: `${rows[0].id}:DUE:${assignedTo}`,
+                scheduledFor: occurrence,
+              },
+              {
+                organizationId: plan.organizationId,
+                inspectionRunId: rows[0].id,
+                recipientUserId: assignedTo,
+                kind: "OVERDUE",
+                dedupeKey: `${rows[0].id}:OVERDUE:${assignedTo}`,
+                scheduledFor: dueAt,
+              },
+            ])
+            .onConflictDoNothing();
+        }
         return Boolean(rows[0]);
       });
       if (inserted) generated += 1;

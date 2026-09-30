@@ -91,6 +91,17 @@ export const findingSeverityEnum = pgEnum("finding_severity", [
   "HIGH",
   "CRITICAL",
 ]);
+export const inspectionNotificationKindEnum = pgEnum("inspection_notification_kind", [
+  "ASSIGNMENT",
+  "DUE",
+  "OVERDUE",
+]);
+export const inspectionNotificationStatusEnum = pgEnum("inspection_notification_status", [
+  "PENDING",
+  "SENDING",
+  "SENT",
+  "CANCELLED",
+]);
 
 export const users = pgTable(
   "users",
@@ -680,6 +691,36 @@ export const inspectionResponses = pgTable(
       foreignColumns: [inspectionRuns.organizationId, inspectionRuns.id],
     }).onDelete("restrict"),
     index("inspection_responses_run_idx").on(table.inspectionRunId),
+  ],
+);
+
+export const inspectionNotificationIntents = pgTable(
+  "inspection_notification_intents",
+  {
+    id: id(),
+    organizationId: uuid("organization_id").notNull(),
+    inspectionRunId: uuid("inspection_run_id").notNull(),
+    recipientUserId: uuid("recipient_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    kind: inspectionNotificationKindEnum("kind").notNull(),
+    status: inspectionNotificationStatusEnum("status").notNull().default("PENDING"),
+    dedupeKey: text("dedupe_key").notNull(),
+    scheduledFor: timestamp("scheduled_for", { withTimezone: true }).notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    lastError: text("last_error"),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    unique("inspection_notification_intents_dedupe_unique").on(table.dedupeKey),
+    foreignKey({
+      name: "inspection_notification_intents_run_tenant_fk",
+      columns: [table.organizationId, table.inspectionRunId],
+      foreignColumns: [inspectionRuns.organizationId, inspectionRuns.id],
+    }).onDelete("restrict"),
+    index("inspection_notification_intents_dispatch_idx").on(table.status, table.scheduledFor),
   ],
 );
 

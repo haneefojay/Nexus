@@ -144,6 +144,23 @@ run_count=$("${psql[@]}" -c "SELECT count(*) FROM inspection_runs WHERE inspecti
   echo "Expected bounded generation, got $run_count runs"
   exit 1
 }
+notification_count=$("${psql[@]}" -c "SELECT count(*) FROM inspection_notification_intents WHERE inspection_run_id = '$run_id';")
+[[ "$notification_count" == "3" ]] || {
+  printf 'checkpoint=notification intent generation\ncount=%s\n' "$notification_count" >/tmp/phase-two-inspections-failure.txt
+  echo "Expected exactly three deduplicated inspection notification intents"
+  exit 1
+}
+assignment_delivery=""
+for _ in $(seq 1 20); do
+  assignment_delivery=$("${psql[@]}" -c "SELECT status FROM inspection_notification_intents WHERE inspection_run_id = '$run_id' AND kind = 'ASSIGNMENT';")
+  [[ "$assignment_delivery" == "SENT" ]] && break
+  sleep 0.25
+done
+[[ "$assignment_delivery" == "SENT" ]] || {
+  printf 'checkpoint=assignment notification delivery\nstatus=%s\n' "$assignment_delivery" >/tmp/phase-two-inspections-failure.txt
+  echo "Assignment notification was not delivered"
+  exit 1
+}
 
 checkpoint "run start"
 curl --fail --silent --cookie "$cookie_jar" -H "x-organization-id: $organization_id" \
