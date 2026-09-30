@@ -15,6 +15,8 @@ import { OperationsController } from "./operations/operations.controller.js";
 import { OperationsService } from "./operations/operations.service.js";
 import { InspectionsController } from "./inspections/inspections.controller.js";
 import { InspectionsService } from "./inspections/inspections.service.js";
+import { FindingsController } from "./findings/findings.controller.js";
+import { FindingsService } from "./findings/findings.service.js";
 import {
   AUTH_TOKEN,
   DATABASE_TOKEN,
@@ -44,6 +46,7 @@ export class AppModule {
         MembershipsController,
         OperationsController,
         InspectionsController,
+        FindingsController,
       ],
       providers: [
         ReadinessService,
@@ -80,6 +83,11 @@ export class AppModule {
           inject: [DATABASE_TOKEN, INSPECTION_QUEUE_TOKEN],
           useFactory: (db: AppDependencies["db"], queue: Queue) =>
             new InspectionsService(db, queue),
+        },
+        {
+          provide: FindingsService,
+          inject: [DATABASE_TOKEN],
+          useFactory: (db: AppDependencies["db"]) => new FindingsService(db),
         },
       ],
     };

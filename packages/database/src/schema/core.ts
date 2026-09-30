@@ -91,6 +91,25 @@ export const findingSeverityEnum = pgEnum("finding_severity", [
   "HIGH",
   "CRITICAL",
 ]);
+export const findingStatusEnum = pgEnum("finding_status", [
+  "OPEN",
+  "ACKNOWLEDGED",
+  "ACTION_REQUIRED",
+  "IN_PROGRESS",
+  "READY_FOR_VERIFICATION",
+  "VERIFIED",
+  "CLOSED",
+  "DISMISSED",
+]);
+export const correctiveActionStatusEnum = pgEnum("corrective_action_status", [
+  "OPEN",
+  "IN_PROGRESS",
+  "BLOCKED",
+  "COMPLETED",
+  "VERIFICATION_REQUIRED",
+  "VERIFIED",
+  "CANCELLED",
+]);
 export const inspectionNotificationKindEnum = pgEnum("inspection_notification_kind", [
   "ASSIGNMENT",
   "DUE",
@@ -730,10 +749,20 @@ export const inspectionFindings = pgTable(
     id: id(),
     organizationId: uuid("organization_id").notNull(),
     inspectionRunId: uuid("inspection_run_id").notNull(),
+    siteId: uuid("site_id").notNull(),
+    assetId: uuid("asset_id"),
     itemId: text("item_id"),
     title: text("title").notNull(),
     notes: text("notes"),
     severity: findingSeverityEnum("severity").notNull(),
+    status: findingStatusEnum("status").notNull().default("OPEN"),
+    detectedAt: timestamp("detected_at", { withTimezone: true }).notNull().defaultNow(),
+    dismissalReason: text("dismissal_reason"),
+    dismissedAt: timestamp("dismissed_at", { withTimezone: true }),
+    dismissedBy: uuid("dismissed_by").references(() => users.id, { onDelete: "restrict" }),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    verifiedBy: uuid("verified_by").references(() => users.id, { onDelete: "restrict" }),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
     createdBy: uuid("created_by")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
@@ -745,7 +774,127 @@ export const inspectionFindings = pgTable(
       columns: [table.organizationId, table.inspectionRunId],
       foreignColumns: [inspectionRuns.organizationId, inspectionRuns.id],
     }).onDelete("restrict"),
+    foreignKey({
+      name: "inspection_findings_site_tenant_fk",
+      columns: [table.organizationId, table.siteId],
+      foreignColumns: [sites.organizationId, sites.id],
+    }).onDelete("restrict"),
+    foreignKey({
+      name: "inspection_findings_asset_tenant_site_fk",
+      columns: [table.organizationId, table.siteId, table.assetId],
+      foreignColumns: [assets.organizationId, assets.siteId, assets.id],
+    }).onDelete("restrict"),
+    unique("inspection_findings_organization_id_unique").on(table.organizationId, table.id),
     index("inspection_findings_run_idx").on(table.inspectionRunId),
-    index("inspection_findings_attention_idx").on(table.organizationId, table.severity),
+    index("inspection_findings_attention_idx").on(
+      table.organizationId,
+      table.status,
+      table.severity,
+    ),
+  ],
+);
+
+export const correctiveActions = pgTable(
+  "corrective_actions",
+  {
+    id: id(),
+    organizationId: uuid("organization_id").notNull(),
+    findingId: uuid("finding_id").notNull(),
+    title: text("title").notNull(),
+    description: text("description").notNull(),
+    assignedTo: uuid("assigned_to")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    priority: findingSeverityEnum("priority").notNull(),
+    dueAt: timestamp("due_at", { withTimezone: true }).notNull(),
+    status: correctiveActionStatusEnum("status").notNull().default("OPEN"),
+    blockedReason: text("blocked_reason"),
+    completionNotes: text("completion_notes"),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    completedBy: uuid("completed_by").references(() => users.id, { onDelete: "restrict" }),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    verifiedBy: uuid("verified_by").references(() => users.id, { onDelete: "restrict" }),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    unique("corrective_actions_organization_id_unique").on(table.organizationId, table.id),
+    unique("corrective_actions_finding_unique").on(table.findingId),
+    foreignKey({
+      name: "corrective_actions_finding_tenant_fk",
+      columns: [table.organizationId, table.findingId],
+      foreignColumns: [inspectionFindings.organizationId, inspectionFindings.id],
+    }).onDelete("restrict"),
+    index("corrective_actions_queue_idx").on(table.organizationId, table.status, table.dueAt),
+    index("corrective_actions_assignee_idx").on(
+      table.organizationId,
+      table.assignedTo,
+      table.status,
+    ),
+  ],
+);
+
+export const findingTransitions = pgTable(
+  "finding_transitions",
+  {
+    id: id(),
+    organizationId: uuid("organization_id").notNull(),
+    findingId: uuid("finding_id").notNull(),
+    fromStatus: findingStatusEnum("from_status"),
+    toStatus: findingStatusEnum("to_status").notNull(),
+    actorUserId: uuid("actor_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    reason: text("reason"),
+    metadata: jsonb("metadata")
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    foreignKey({
+      name: "finding_transitions_finding_tenant_fk",
+      columns: [table.organizationId, table.findingId],
+      foreignColumns: [inspectionFindings.organizationId, inspectionFindings.id],
+    }).onDelete("restrict"),
+    index("finding_transitions_history_idx").on(
+      table.organizationId,
+      table.findingId,
+      table.createdAt,
+    ),
+  ],
+);
+
+export const correctiveActionTransitions = pgTable(
+  "corrective_action_transitions",
+  {
+    id: id(),
+    organizationId: uuid("organization_id").notNull(),
+    correctiveActionId: uuid("corrective_action_id").notNull(),
+    fromStatus: correctiveActionStatusEnum("from_status"),
+    toStatus: correctiveActionStatusEnum("to_status").notNull(),
+    actorUserId: uuid("actor_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    note: text("note"),
+    metadata: jsonb("metadata")
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    foreignKey({
+      name: "corrective_action_transitions_action_tenant_fk",
+      columns: [table.organizationId, table.correctiveActionId],
+      foreignColumns: [correctiveActions.organizationId, correctiveActions.id],
+    }).onDelete("restrict"),
+    index("corrective_action_transitions_history_idx").on(
+      table.organizationId,
+      table.correctiveActionId,
+      table.createdAt,
+    ),
   ],
 );

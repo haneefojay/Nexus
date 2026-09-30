@@ -335,6 +335,40 @@ export const inspectionFindingCreateSchema = z.object({
   severity: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
 });
 
+export const findingStatusSchema = z.enum([
+  "OPEN",
+  "ACKNOWLEDGED",
+  "ACTION_REQUIRED",
+  "IN_PROGRESS",
+  "READY_FOR_VERIFICATION",
+  "VERIFIED",
+  "CLOSED",
+  "DISMISSED",
+]);
+
+export const findingTransitionSchema = z.object({
+  status: findingStatusSchema,
+  reason: z.string().trim().min(1).max(5_000).optional(),
+});
+
+export const findingDismissSchema = z.object({
+  reason: z.string().trim().min(1).max(5_000),
+});
+
+export const correctiveActionCreateSchema = z.object({
+  title: z.string().trim().min(1).max(300),
+  description: z.string().trim().min(1).max(5_000),
+  assignedTo: uuidV7Schema,
+  priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
+  dueAt: z.string().datetime({ offset: true }),
+});
+
+export const correctiveActionTransitionSchema = z.object({
+  note: z.string().trim().min(1).max(5_000).optional(),
+  completionNotes: z.string().trim().min(1).max(10_000).optional(),
+  completionEvidenceCount: z.number().int().min(0).max(100).optional(),
+});
+
 export type InvitationCreateInput = z.infer<typeof invitationCreateSchema>;
 export type SiteCreateInput = z.infer<typeof siteCreateSchema>;
 export type SiteUpdateInput = z.infer<typeof siteUpdateSchema>;
@@ -348,3 +382,7 @@ export type InspectionPlanCreateInput = z.infer<typeof inspectionPlanCreateSchem
 export type InspectionPlanUpdateInput = z.infer<typeof inspectionPlanUpdateSchema>;
 export type InspectionResponsesInput = z.infer<typeof inspectionResponsesSchema>;
 export type InspectionFindingCreateInput = z.infer<typeof inspectionFindingCreateSchema>;
+export type FindingTransitionInput = z.infer<typeof findingTransitionSchema>;
+export type FindingDismissInput = z.infer<typeof findingDismissSchema>;
+export type CorrectiveActionCreateInput = z.infer<typeof correctiveActionCreateSchema>;
+export type CorrectiveActionTransitionInput = z.infer<typeof correctiveActionTransitionSchema>;

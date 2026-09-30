@@ -433,6 +433,8 @@ export class InspectionsService {
       .values({
         organizationId: context.organizationId,
         inspectionRunId: id,
+        siteId: run.siteId,
+        assetId: run.assetId,
         createdBy: context.userId,
         ...input,
       })
@@ -572,6 +574,8 @@ export class InspectionsService {
       .select({
         status: inspectionRuns.status,
         assignedTo: inspectionRuns.assignedTo,
+        siteId: inspectionRuns.siteId,
+        assetId: inspectionRuns.assetId,
         templateVersionId: inspectionRuns.templateVersionId,
         requiresReview: inspectionPlans.requiresReview,
       })

@@ -89,14 +89,29 @@ export interface InspectionResponseIssue {
 
 export const findingStatuses = [
   "OPEN",
+  "ACKNOWLEDGED",
   "ACTION_REQUIRED",
-  "IN_REMEDIATION",
+  "IN_PROGRESS",
   "READY_FOR_VERIFICATION",
   "VERIFIED",
   "CLOSED",
   "DISMISSED",
 ] as const;
 export type FindingStatus = (typeof findingStatuses)[number];
+
+export const correctiveActionStatuses = [
+  "OPEN",
+  "IN_PROGRESS",
+  "BLOCKED",
+  "COMPLETED",
+  "VERIFICATION_REQUIRED",
+  "VERIFIED",
+  "CANCELLED",
+] as const;
+export type CorrectiveActionStatus = (typeof correctiveActionStatuses)[number];
+
+export const findingSeverities = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
+export type FindingSeverity = (typeof findingSeverities)[number];
 
 const siteTransitions: Record<SiteStatus, readonly SiteStatus[]> = {
   DRAFT: ["ACTIVE", "ARCHIVED"],
@@ -132,6 +147,114 @@ const inspectionRunTransitions: Record<InspectionRunStatus, readonly InspectionR
   CLOSED: [],
   CANCELLED: [],
 };
+
+const findingTransitions: Record<FindingStatus, readonly FindingStatus[]> = {
+  OPEN: ["ACKNOWLEDGED", "ACTION_REQUIRED", "DISMISSED"],
+  ACKNOWLEDGED: ["ACTION_REQUIRED", "DISMISSED"],
+  ACTION_REQUIRED: ["IN_PROGRESS", "DISMISSED"],
+  IN_PROGRESS: ["READY_FOR_VERIFICATION"],
+  READY_FOR_VERIFICATION: ["IN_PROGRESS", "VERIFIED"],
+  VERIFIED: ["CLOSED"],
+  CLOSED: [],
+  DISMISSED: [],
+};
+
+const correctiveActionTransitions: Record<
+  CorrectiveActionStatus,
+  readonly CorrectiveActionStatus[]
+> = {
+  OPEN: ["IN_PROGRESS", "CANCELLED"],
+  IN_PROGRESS: ["BLOCKED", "COMPLETED", "CANCELLED"],
+  BLOCKED: ["IN_PROGRESS", "CANCELLED"],
+  COMPLETED: ["VERIFICATION_REQUIRED"],
+  VERIFICATION_REQUIRED: ["IN_PROGRESS", "VERIFIED"],
+  VERIFIED: [],
+  CANCELLED: [],
+};
+
+export function assertFindingTransition(
+  from: FindingStatus,
+  to: FindingStatus,
+  options: {
+    severity: FindingSeverity;
+    hasVerifiedAction: boolean;
+    dismissalReason?: string | null;
+  },
+): void {
+  if (!findingTransitions[from].includes(to)) {
+    throw new DomainRuleError(
+      "INVALID_FINDING_TRANSITION",
+      `Finding cannot transition from ${from} to ${to}.`,
+    );
+  }
+  if (to === "DISMISSED" && !options.dismissalReason?.trim()) {
+    throw new DomainRuleError(
+      "FINDING_DISMISSAL_REASON_REQUIRED",
+      "A dismissal reason is required.",
+    );
+  }
+  if (
+    (to === "VERIFIED" || to === "CLOSED") &&
+    options.severity === "CRITICAL" &&
+    !options.hasVerifiedAction
+  ) {
+    throw new DomainRuleError(
+      "CRITICAL_FINDING_VERIFICATION_REQUIRED",
+      "A critical finding requires an authorized verified action before closure.",
+    );
+  }
+}
+
+export function assertCorrectiveActionTransition(
+  from: CorrectiveActionStatus,
+  to: CorrectiveActionStatus,
+  options: {
+    completionNotes?: string | null;
+    completionEvidenceCount?: number;
+    actorUserId: string;
+    assigneeUserId: string;
+    completedByUserId?: string | null;
+  },
+): void {
+  if (!correctiveActionTransitions[from].includes(to)) {
+    throw new DomainRuleError(
+      "INVALID_CORRECTIVE_ACTION_TRANSITION",
+      `Corrective action cannot transition from ${from} to ${to}.`,
+    );
+  }
+  if (to === "COMPLETED") {
+    if (!options.completionNotes?.trim()) {
+      throw new DomainRuleError(
+        "ACTION_COMPLETION_NOTES_REQUIRED",
+        "Completion notes are required.",
+      );
+    }
+    if (!options.completionEvidenceCount) {
+      throw new DomainRuleError(
+        "ACTION_COMPLETION_EVIDENCE_REQUIRED",
+        "Completion evidence is required.",
+      );
+    }
+  }
+  if (
+    to === "VERIFIED" &&
+    (options.actorUserId === options.assigneeUserId ||
+      options.actorUserId === options.completedByUserId)
+  ) {
+    throw new DomainRuleError(
+      "ACTION_VERIFIER_SEPARATION_REQUIRED",
+      "The assignee or completer cannot verify their own corrective action.",
+    );
+  }
+}
+
+export function isCorrectiveActionOverdue(
+  dueAt: Date,
+  status: CorrectiveActionStatus,
+  now: Date,
+): boolean {
+  return !["VERIFIED", "CANCELLED"].includes(status) && dueAt.getTime() < now.getTime();
+}
 
 export function assertInspectionRunTransition(
   from: InspectionRunStatus,
@@ -449,7 +572,14 @@ export type Permission =
   | "inspection-runs:read"
   | "inspection-runs:execute"
   | "inspection-runs:review"
-  | "inspection-dashboard:read";
+  | "inspection-dashboard:read"
+  | "findings:read"
+  | "findings:manage"
+  | "findings:dismiss"
+  | "actions:read"
+  | "actions:manage"
+  | "actions:execute"
+  | "actions:verify";
 
 export type PhaseOnePermission = Permission;
 
@@ -471,6 +601,13 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     "inspection-runs:execute",
     "inspection-runs:review",
     "inspection-dashboard:read",
+    "findings:read",
+    "findings:manage",
+    "findings:dismiss",
+    "actions:read",
+    "actions:manage",
+    "actions:execute",
+    "actions:verify",
   ]),
   OPERATIONS_MANAGER: new Set([
     "organization:read",
@@ -488,6 +625,13 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     "inspection-runs:execute",
     "inspection-runs:review",
     "inspection-dashboard:read",
+    "findings:read",
+    "findings:manage",
+    "findings:dismiss",
+    "actions:read",
+    "actions:manage",
+    "actions:execute",
+    "actions:verify",
   ]),
   SUPERVISOR: new Set([
     "organization:read",
@@ -500,6 +644,12 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     "inspection-runs:execute",
     "inspection-runs:review",
     "inspection-dashboard:read",
+    "findings:read",
+    "findings:manage",
+    "findings:dismiss",
+    "actions:read",
+    "actions:execute",
+    "actions:verify",
   ]),
   TECHNICIAN: new Set([
     "organization:read",
@@ -511,6 +661,9 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     "inspection-runs:read",
     "inspection-runs:execute",
     "inspection-dashboard:read",
+    "findings:read",
+    "actions:read",
+    "actions:execute",
   ]),
   VIEWER: new Set([
     "organization:read",
@@ -521,6 +674,8 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     "inspection-plans:read",
     "inspection-runs:read",
     "inspection-dashboard:read",
+    "findings:read",
+    "actions:read",
   ]),
 };
 
