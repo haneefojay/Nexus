@@ -484,6 +484,9 @@ importers:
         specifier: ^3.1142.0
         version: 3.1142.0
     devDependencies:
+      '@types/node':
+        specifier: ^24.19.0
+        version: 24.19.0
       typescript:
         specifier: ^5.9.2
         version: 5.9.3
@@ -6592,6 +6595,7 @@ snapshots:
     optionalDependencies:
       kysely: 0.29.6
       postgres: 3.4.7
+    optional: true
 
   drizzle-orm@0.45.3(postgres@3.4.7):
     optionalDependencies:

@@ -170,10 +170,20 @@ missing_status=$(curl --silent --output /dev/null --write-out '%{http_code}' --c
   "http://localhost:3001/v1/inspection-runs/$run_id/submit")
 [[ "$missing_status" == "400" ]] || { echo "Required responses did not block submission"; exit 1; }
 checkpoint "response persistence"
-curl --fail --silent --cookie "$cookie_jar" -H "x-organization-id: $organization_id" \
+response_output=$(mktemp)
+response_status=$(curl --silent --output "$response_output" --write-out '%{http_code}' \
+  --cookie "$cookie_jar" -H "x-organization-id: $organization_id" \
   -H 'content-type: application/json' -X PUT \
   --data '{"responses":[{"itemId":"condition","value":true},{"itemId":"voltage","value":240}],"notes":"All checks complete"}' \
-  "http://localhost:3001/v1/inspection-runs/$run_id/responses" >/dev/null
+  "http://localhost:3001/v1/inspection-runs/$run_id/responses")
+if [[ "$response_status" != "200" && "$response_status" != "201" ]]; then
+  printf 'checkpoint=response persistence\nstatus=%s\nbody=%s\n' \
+    "$response_status" "$(cat "$response_output")" >/tmp/phase-two-inspections-failure.txt
+  cat "$response_output"
+  rm -f "$response_output"
+  exit 1
+fi
+rm -f "$response_output"
 curl --fail --silent --cookie "$cookie_jar" -H "x-organization-id: $organization_id" \
   -H 'content-type: application/json' \
   --data '{"itemId":"condition","title":"Minor label wear","severity":"LOW"}' \
