@@ -113,6 +113,7 @@ export const correctiveActionStatusEnum = pgEnum("corrective_action_status", [
 export const evidenceTargetTypeEnum = pgEnum("evidence_target_type", [
   "FINDING",
   "CORRECTIVE_ACTION",
+  "INSPECTION_RUN",
 ]);
 export const uploadGrantStatusEnum = pgEnum("upload_grant_status", [
   "ISSUED",
@@ -141,6 +142,14 @@ export const inspectionNotificationStatusEnum = pgEnum("inspection_notification_
   "SENT",
   "CANCELLED",
   "FAILED",
+]);
+export const fieldDeviceStatusEnum = pgEnum("field_device_status", ["ACTIVE", "REVOKED"]);
+export const fieldSyncOutcomeEnum = pgEnum("field_sync_outcome", [
+  "SUCCESS",
+  "RETRYABLE_FAILURE",
+  "PERMANENT_FAILURE",
+  "AUTHENTICATION_FAILURE",
+  "CONFLICT",
 ]);
 
 export const users = pgTable(
@@ -1009,5 +1018,111 @@ export const evidence = pgTable(
     }).onDelete("restrict"),
     unique("evidence_storage_object_unique").on(table.storageObjectId),
     index("evidence_target_idx").on(table.organizationId, table.targetType, table.targetId),
+  ],
+);
+
+export const fieldDevices = pgTable(
+  "field_devices",
+  {
+    id: uuid("id").primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "restrict" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    status: fieldDeviceStatusEnum("status").notNull().default("ACTIVE"),
+    label: text("label"),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    unique("field_devices_organization_id_unique").on(table.organizationId, table.id),
+    index("field_devices_owner_idx").on(table.organizationId, table.userId, table.status),
+  ],
+);
+
+export const fieldRunDevices = pgTable(
+  "field_run_devices",
+  {
+    id: id(),
+    organizationId: uuid("organization_id").notNull(),
+    inspectionRunId: uuid("inspection_run_id").notNull(),
+    deviceId: uuid("device_id").notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    boundAt: timestamp("bound_at", { withTimezone: true }).notNull().defaultNow(),
+    releasedAt: timestamp("released_at", { withTimezone: true }),
+  },
+  (table) => [
+    foreignKey({
+      name: "field_run_devices_run_tenant_fk",
+      columns: [table.organizationId, table.inspectionRunId],
+      foreignColumns: [inspectionRuns.organizationId, inspectionRuns.id],
+    }).onDelete("restrict"),
+    foreignKey({
+      name: "field_run_devices_device_tenant_fk",
+      columns: [table.organizationId, table.deviceId],
+      foreignColumns: [fieldDevices.organizationId, fieldDevices.id],
+    }).onDelete("restrict"),
+    uniqueIndex("field_run_devices_active_run_unique")
+      .on(table.organizationId, table.inspectionRunId)
+      .where(sql`${table.releasedAt} is null`),
+    index("field_run_devices_owner_idx").on(table.organizationId, table.userId, table.deviceId),
+  ],
+);
+
+export const fieldSyncCommands = pgTable(
+  "field_sync_commands",
+  {
+    commandId: uuid("command_id").primaryKey(),
+    organizationId: uuid("organization_id").notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    deviceId: uuid("device_id").notNull(),
+    inspectionRunId: uuid("inspection_run_id").notNull(),
+    sequence: integer("sequence").notNull(),
+    idempotencyKey: text("idempotency_key").notNull(),
+    commandType: text("command_type").notNull(),
+    payloadHash: text("payload_hash").notNull(),
+    outcome: fieldSyncOutcomeEnum("outcome").notNull(),
+    code: text("code").notNull(),
+    authoritativeResult: jsonb("authoritative_result"),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+    processedAt: timestamp("processed_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    foreignKey({
+      name: "field_sync_commands_run_tenant_fk",
+      columns: [table.organizationId, table.inspectionRunId],
+      foreignColumns: [inspectionRuns.organizationId, inspectionRuns.id],
+    }).onDelete("restrict"),
+    foreignKey({
+      name: "field_sync_commands_device_tenant_fk",
+      columns: [table.organizationId, table.deviceId],
+      foreignColumns: [fieldDevices.organizationId, fieldDevices.id],
+    }).onDelete("restrict"),
+    unique("field_sync_commands_idempotency_unique").on(
+      table.organizationId,
+      table.userId,
+      table.deviceId,
+      table.idempotencyKey,
+    ),
+    unique("field_sync_commands_sequence_unique").on(
+      table.organizationId,
+      table.inspectionRunId,
+      table.deviceId,
+      table.sequence,
+    ),
+    index("field_sync_commands_history_idx").on(
+      table.organizationId,
+      table.inspectionRunId,
+      table.processedAt,
+    ),
+    check("field_sync_commands_sequence_positive", sql`${table.sequence} > 0`),
   ],
 );

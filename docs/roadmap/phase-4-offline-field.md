@@ -23,8 +23,8 @@ Command ordering, duplicate delivery, device ownership, partial success, expired
 
 ## Definition of Done
 
-- [ ] Technician completes and locally submits a synchronized inspection without network.
-- [ ] Reload preserves safe local state.
-- [ ] Reconnection syncs commands and evidence exactly once.
-- [ ] Conflicts and failures are explicit and recoverable.
-- [ ] Automated offline E2E verifies final server state.
+- [x] Technician completes and locally submits a synchronized inspection without network.
+- [x] Reload preserves safe local state.
+- [x] Reconnection syncs commands and evidence exactly once.
+- [x] Conflicts and failures are explicit and recoverable.
+- [x] Automated offline E2E verifies final server state.

@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 import path from "node:path";
+import withSerwistInit from "@serwist/next";
+import { PHASE_PRODUCTION_SERVER } from "next/constants";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -10,4 +12,17 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+const withSerwist = withSerwistInit({
+  swSrc: "app/sw.ts",
+  swDest: "public/sw.js",
+  register: false,
+  reloadOnOnline: false,
+  cacheOnNavigation: false,
+  disable: process.env.NODE_ENV === "development",
+  globPublicPatterns: ["icons/**/*.{svg,png}", "manifest.webmanifest"],
+});
+
+const nexusConfig = (phase: string) =>
+  phase === PHASE_PRODUCTION_SERVER ? nextConfig : withSerwist(nextConfig);
+
+export default nexusConfig;

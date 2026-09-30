@@ -373,7 +373,7 @@ export const correctiveActionAssignSchema = z.object({
   reason: z.string().trim().min(1).max(5_000),
 });
 
-export const evidenceTargetTypeSchema = z.enum(["FINDING", "CORRECTIVE_ACTION"]);
+export const evidenceTargetTypeSchema = z.enum(["FINDING", "CORRECTIVE_ACTION", "INSPECTION_RUN"]);
 export const evidenceUploadAuthorizeSchema = z.object({
   targetType: evidenceTargetTypeSchema,
   targetId: uuidV7Schema,
@@ -400,6 +400,63 @@ export const evidenceFinalizeSchema = z
     "Latitude and longitude must be supplied together",
   );
 
+const fieldCommandBaseSchema = z.object({
+  commandId: uuidV7Schema,
+  organizationId: uuidV7Schema,
+  inspectionRunId: uuidV7Schema,
+  userId: uuidV7Schema,
+  deviceId: uuidV7Schema,
+  sequence: z.number().int().positive().max(1_000_000),
+  dependsOn: z.array(uuidV7Schema).max(20),
+  occurredAt: z.string().datetime({ offset: true }),
+  idempotencyKey: z
+    .string()
+    .trim()
+    .min(16)
+    .max(200)
+    .regex(/^[a-zA-Z0-9:_-]+$/),
+});
+
+export const fieldSyncCommandSchema = z.discriminatedUnion("type", [
+  fieldCommandBaseSchema.extend({
+    type: z.literal("START_INSPECTION"),
+    payload: z.object({}).strict(),
+  }),
+  fieldCommandBaseSchema.extend({
+    type: z.literal("SAVE_RESPONSES"),
+    payload: inspectionResponsesSchema,
+  }),
+  fieldCommandBaseSchema.extend({
+    type: z.literal("AUTHORIZE_EVIDENCE"),
+    payload: evidenceUploadAuthorizeSchema.extend({
+      targetType: z.literal("INSPECTION_RUN"),
+      targetId: uuidV7Schema,
+    }),
+  }),
+  fieldCommandBaseSchema.extend({
+    type: z.literal("FINALIZE_EVIDENCE"),
+    payload: evidenceFinalizeSchema,
+  }),
+  fieldCommandBaseSchema.extend({
+    type: z.literal("SUBMIT_INSPECTION"),
+    payload: z.object({}).strict(),
+  }),
+]);
+
+export const fieldSyncBatchSchema = z.object({
+  protocolVersion: z.literal(1),
+  localSchemaVersion: z.literal(1),
+  deviceId: uuidV7Schema,
+  commands: z.array(fieldSyncCommandSchema).min(1).max(50),
+});
+
+export const fieldAssignmentQuerySchema = z.object({
+  protocolVersion: z.coerce.number().int().pipe(z.literal(1)),
+  localSchemaVersion: z.coerce.number().int().pipe(z.literal(1)),
+  deviceId: uuidV7Schema,
+  deviceLabel: z.string().trim().min(1).max(120).optional(),
+});
+
 export type InvitationCreateInput = z.infer<typeof invitationCreateSchema>;
 export type SiteCreateInput = z.infer<typeof siteCreateSchema>;
 export type SiteUpdateInput = z.infer<typeof siteUpdateSchema>;
@@ -420,3 +477,6 @@ export type CorrectiveActionTransitionInput = z.infer<typeof correctiveActionTra
 export type CorrectiveActionAssignInput = z.infer<typeof correctiveActionAssignSchema>;
 export type EvidenceUploadAuthorizeInput = z.infer<typeof evidenceUploadAuthorizeSchema>;
 export type EvidenceFinalizeInput = z.infer<typeof evidenceFinalizeSchema>;
+export type FieldSyncCommandInput = z.infer<typeof fieldSyncCommandSchema>;
+export type FieldSyncBatchInput = z.infer<typeof fieldSyncBatchSchema>;
+export type FieldAssignmentQueryInput = z.infer<typeof fieldAssignmentQuerySchema>;

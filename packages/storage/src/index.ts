@@ -23,7 +23,7 @@ export const maximumEvidenceBytes = 20 * 1024 * 1024;
 export interface AuthorizedUploadRequest {
   organizationId: string;
   actorId: string;
-  targetType: "FINDING" | "CORRECTIVE_ACTION";
+  targetType: "FINDING" | "CORRECTIVE_ACTION" | "INSPECTION_RUN";
   targetId: string;
   contentType: EvidenceContentType;
   contentLength: number;
