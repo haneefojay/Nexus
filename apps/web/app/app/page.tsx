@@ -72,7 +72,7 @@ const navigation: { id: View; label: string; icon: typeof Activity }[] = [
   { id: "templates", label: "Templates", icon: ClipboardCheck },
   { id: "plans", label: "Plans & schedules", icon: CalendarDays },
   { id: "findings", label: "Findings & actions", icon: Activity },
-  { id: "reports", label: "Reports", icon: FileText },
+  { id: "reports", label: "Reports & exports", icon: FileText },
   { id: "search", label: "Global search", icon: Search },
   { id: "sites", label: "Sites", icon: Building2 },
   { id: "assets", label: "Assets", icon: Database },
