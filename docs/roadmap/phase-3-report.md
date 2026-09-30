@@ -1,8 +1,9 @@
 # Phase 3 Completion Report — Findings & Actions
 
-**Status:** Implementation complete; final hosted CI confirmation pending  
+**Status:** Complete  
 **Base:** `dev` at `b552b2114deb692674215d3a4cfecdc1901438d0`  
-**Branch:** `phase-3/findings-actions`
+**Branch:** `phase-3/findings-actions`  
+**Final validation:** GitHub Actions run `36726328824`
 
 ## Delivered
 
@@ -39,12 +40,12 @@
   responsive layout, inspection workflows, and public/authenticated entry points.
 - Dependency audit passes the high-severity gate (one moderate advisory remains).
 
-## Infrastructure warning
+## Final CI
 
-GitHub Actions runs `36721096104` and `36721464339` failed before executing any workflow step:
-both jobs received hosted runners but returned an empty step list. This is an external runner
-startup failure, not a project test failure. The branch retains the full CI and Docker gates and
-must not merge until a run executes and passes.
+The final quality and Docker infrastructure jobs passed in GitHub Actions run `36726328824`.
+Earlier failures exposed and corrected missing storage-package Node types, an accidental Phase 2
+response-schema regression, and non-isolated authentication rate limits in the Phase 3 smoke test.
+The successful run verifies the fixes and all Phase 1–3 regression gates.
 
 ## Scope boundary
 
