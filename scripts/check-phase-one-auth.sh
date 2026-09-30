@@ -78,7 +78,7 @@ organization_status=$(tail -n 1 <<<"$organization_response")
 organization=$(sed '$d' <<<"$organization_response")
 if [[ "$organization_status" -lt 200 || "$organization_status" -ge 300 ]]; then
   organization_error=$(jq -r '(.message // .error // "unknown") | tostring' <<<"$organization" 2>/dev/null || echo "unknown")
-  api_error=$(jq -r 'select((.level // 0) >= 50) | (.err.message // .msg // empty)' "$log_file" 2>/dev/null | tail -n 1)
+  api_error=$(jq -Rr 'fromjson? | select((.level // 0) >= 50) | (.err.message // .msg // empty)' "$log_file" 2>/dev/null | tail -n 1)
   echo "::error title=Organization smoke request failed::HTTP $organization_status: ${api_error:-$organization_error}"
   exit 1
 fi
