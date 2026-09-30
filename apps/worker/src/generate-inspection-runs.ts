@@ -5,9 +5,9 @@ import {
   eq,
   inspectionPlans,
   inspectionRuns,
+  lte,
   memberships,
   organizations,
-  sql,
   type createDatabase,
 } from "@nexus/database";
 import { inspectionOccurrenceAt } from "@nexus/domain";
@@ -45,7 +45,7 @@ export async function generateInspectionRuns(
     .where(
       and(
         eq(inspectionPlans.active, true),
-        sql`${inspectionPlans.nextDueAt} <= ${horizon}`,
+        lte(inspectionPlans.nextDueAt, horizon),
         input.planId ? eq(inspectionPlans.id, input.planId) : undefined,
       ),
     )
