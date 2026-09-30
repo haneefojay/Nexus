@@ -16,7 +16,9 @@ import {
   Upload,
   Users,
   X,
+  CloudOff,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -193,6 +195,10 @@ export default function OperationsPage() {
           </select>
         </div>
         <nav aria-label="Operations">
+          <Link className="field-mode-link" href="/field">
+            <CloudOff size={17} />
+            Field mode
+          </Link>
           {navigation.map((item) => {
             const Icon = item.icon;
             return (

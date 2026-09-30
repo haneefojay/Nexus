@@ -2,6 +2,17 @@
 
 export const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
+export class ApiClientError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code?: string,
+  ) {
+    super(message);
+    this.name = "ApiClientError";
+  }
+}
+
 export async function api<T>(
   path: string,
   init: RequestInit = {},
@@ -15,7 +26,16 @@ export async function api<T>(
     headers,
     credentials: "include",
   });
-  const payload = (await response.json().catch(() => ({}))) as { message?: string };
-  if (!response.ok) throw new Error(payload.message ?? "The request could not be completed");
+  const payload = (await response.json().catch(() => ({}))) as {
+    message?: string;
+    code?: string;
+    error?: { code?: string };
+  };
+  if (!response.ok)
+    throw new ApiClientError(
+      payload.message ?? "The request could not be completed",
+      response.status,
+      payload.code ?? payload.error?.code,
+    );
   return payload as T;
 }
