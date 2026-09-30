@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -eEuo pipefail
-trap 'echo "::error title=Phase 2 inspection smoke failure::Command failed at line $LINENO: $BASH_COMMAND"' ERR
 
 export NODE_ENV=test
 export WEB_URL=http://localhost:3000
@@ -24,6 +23,28 @@ cookie_jar=$(mktemp)
 viewer_cookie=$(mktemp)
 api_pid=""
 worker_pid=""
+on_error() {
+  local exit_code=$?
+  {
+    echo "### Phase 2 inspection smoke failure"
+    echo
+    echo "- Line: \`$1\`"
+    echo "- Command: \`$2\`"
+    echo
+    echo "#### API log"
+    echo '```text'
+    tail -n 80 "$api_log" 2>/dev/null || true
+    echo '```'
+    echo
+    echo "#### Worker log"
+    echo '```text'
+    tail -n 80 "$worker_log" 2>/dev/null || true
+    echo '```'
+  } >>"${GITHUB_STEP_SUMMARY:-/dev/stderr}"
+  echo "::error title=Phase 2 inspection smoke failure::Command failed at line $1: $2"
+  exit "$exit_code"
+}
+trap 'on_error "$LINENO" "$BASH_COMMAND"' ERR
 cleanup() {
   [[ -z "$worker_pid" ]] || kill "$worker_pid" 2>/dev/null || true
   [[ -z "$api_pid" ]] || kill "$api_pid" 2>/dev/null || true
