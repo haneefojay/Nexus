@@ -196,6 +196,32 @@ dashboard=$(curl --fail --silent --cookie "$cookie_jar" -H "x-organization-id: $
   http://localhost:3001/v1/inspection-dashboard)
 jq -e '.data.summary.completed_recently >= 1' <<<"$dashboard" >/dev/null
 
+checkpoint "review-required lifecycle"
+review_plan=$(curl --fail --silent --cookie "$cookie_jar" -H "x-organization-id: $organization_id" \
+  -H 'content-type: application/json' \
+  --data "{\"templateVersionId\":\"$version_id\",\"name\":\"Reviewed CI plan\",\"targetType\":\"SITE\",\"siteId\":\"$site_id\",\"recurrence\":{\"type\":\"DAILY\"},\"startsAt\":\"$starts_at\",\"assignedUserId\":\"$operator_id\",\"dueWindowMinutes\":60,\"requiresReview\":true}" \
+  http://localhost:3001/v1/inspection-plans)
+review_plan_id=$(jq -er '.data.id' <<<"$review_plan")
+review_run_id=""
+for _ in $(seq 1 40); do
+  review_run_id=$("${psql[@]}" -c "SELECT id FROM inspection_runs WHERE inspection_plan_id = '$review_plan_id' ORDER BY sequence LIMIT 1;")
+  [[ -n "$review_run_id" ]] && break
+  sleep 0.5
+done
+[[ -n "$review_run_id" ]] || { echo "Review-required run was not generated"; exit 1; }
+curl --fail --silent --cookie "$cookie_jar" -H "x-organization-id: $organization_id" \
+  -X POST "http://localhost:3001/v1/inspection-runs/$review_run_id/start" >/dev/null
+curl --fail --silent --cookie "$cookie_jar" -H "x-organization-id: $organization_id" \
+  -H 'content-type: application/json' -X PUT \
+  --data '{"responses":[{"itemId":"condition","value":true},{"itemId":"voltage","value":241}]}' \
+  "http://localhost:3001/v1/inspection-runs/$review_run_id/responses" >/dev/null
+review_submission=$(curl --fail --silent --cookie "$cookie_jar" -H "x-organization-id: $organization_id" \
+  -X POST "http://localhost:3001/v1/inspection-runs/$review_run_id/submit")
+jq -e '.data.status == "REVIEW_REQUIRED"' <<<"$review_submission" >/dev/null
+reviewed=$(curl --fail --silent --cookie "$cookie_jar" -H "x-organization-id: $organization_id" \
+  -X POST "http://localhost:3001/v1/inspection-runs/$review_run_id/review")
+jq -e '.data.status == "CLOSED"' <<<"$reviewed" >/dev/null
+
 checkpoint "cross-tenant isolation"
 other_org=$(curl --fail --silent --cookie "$cookie_jar" -H 'content-type: application/json' \
   --data '{"name":"Phase Two Other","slug":"phase-two-other","timezone":"UTC"}' \
