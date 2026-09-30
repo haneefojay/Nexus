@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main, dev, "phase-2/**"]
+    branches: [main, dev, "phase-2/**", "phase-3/**"]
 
 permissions:
   contents: read
@@ -57,6 +57,15 @@ jobs:
       - run: bash scripts/check-phase-one-auth.sh
       - run: bash scripts/check-phase-two-database.sh
       - run: bash scripts/check-phase-two-inspections.sh
+      - run: bash scripts/check-phase-three-database.sh
+      - run: bash scripts/check-phase-three-lifecycle.sh
+      - if: failure()
+        name: Report Phase 3 smoke failure
+        run: |
+          if [[ -f /tmp/phase-three-lifecycle-failure.txt ]]; then
+            diagnostic=$(tr '\n' ';' </tmp/phase-three-lifecycle-failure.txt)
+            echo "::error title=Phase 3 smoke diagnostics::$diagnostic"
+          fi
       - if: failure()
         name: Report Phase 2 smoke failure
         run: |

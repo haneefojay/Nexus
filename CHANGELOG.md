@@ -1,5 +1,14 @@
 # Changelog
 
+## Phase 3 — Findings & Actions
+
+- Added tenant-safe finding and corrective-action lifecycles with immutable history, dismissal,
+  assignment, due/overdue state, evidence-backed completion, verification, and closure.
+- Added private target-bound S3/MinIO evidence authorization, finalization validation, provenance,
+  secure downloads, and orphan cleanup.
+- Added deduplicated action notifications, bounded delivery attempts, operational dashboards,
+  global search, responsive authenticated workflows, and Phase 3 security/E2E gates.
+
 All notable changes to this project will be documented here.
 
 ## [Unreleased]

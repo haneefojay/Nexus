@@ -16,6 +16,7 @@
     "@nexus/contracts": "workspace:*",
     "@nexus/database": "workspace:*",
     "@nexus/domain": "workspace:*",
+    "@nexus/storage": "workspace:*",
     "bullmq": "5.58.5",
     "csv-parse": "6.1.0",
     "nodemailer": "10.0.12"

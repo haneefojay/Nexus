@@ -11,7 +11,12 @@
     "test": "vitest run --passWithNoTests"
   },
   "devDependencies": {
+    "@types/node": "^24.19.0",
     "typescript": "^5.9.2",
     "vitest": "4.1.11"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1142.0",
+    "@aws-sdk/s3-request-presigner": "^3.1142.0"
   }
 }

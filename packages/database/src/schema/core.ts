@@ -91,16 +91,56 @@ export const findingSeverityEnum = pgEnum("finding_severity", [
   "HIGH",
   "CRITICAL",
 ]);
+export const findingStatusEnum = pgEnum("finding_status", [
+  "OPEN",
+  "ACKNOWLEDGED",
+  "ACTION_REQUIRED",
+  "IN_PROGRESS",
+  "READY_FOR_VERIFICATION",
+  "VERIFIED",
+  "CLOSED",
+  "DISMISSED",
+]);
+export const correctiveActionStatusEnum = pgEnum("corrective_action_status", [
+  "OPEN",
+  "IN_PROGRESS",
+  "BLOCKED",
+  "COMPLETED",
+  "VERIFICATION_REQUIRED",
+  "VERIFIED",
+  "CANCELLED",
+]);
+export const evidenceTargetTypeEnum = pgEnum("evidence_target_type", [
+  "FINDING",
+  "CORRECTIVE_ACTION",
+]);
+export const uploadGrantStatusEnum = pgEnum("upload_grant_status", [
+  "ISSUED",
+  "FINALIZED",
+  "REJECTED",
+]);
+export const storageObjectStatusEnum = pgEnum("storage_object_status", [
+  "AVAILABLE",
+  "QUARANTINED",
+  "DELETED",
+]);
 export const inspectionNotificationKindEnum = pgEnum("inspection_notification_kind", [
   "ASSIGNMENT",
   "DUE",
   "OVERDUE",
+  "FINDING_ASSIGNMENT",
+  "ACTION_ASSIGNMENT",
+  "ACTION_DUE",
+  "ACTION_OVERDUE",
+  "ACTION_COMPLETED",
+  "ACTION_VERIFIED",
 ]);
 export const inspectionNotificationStatusEnum = pgEnum("inspection_notification_status", [
   "PENDING",
   "SENDING",
   "SENT",
   "CANCELLED",
+  "FAILED",
 ]);
 
 export const users = pgTable(
@@ -699,7 +739,9 @@ export const inspectionNotificationIntents = pgTable(
   {
     id: id(),
     organizationId: uuid("organization_id").notNull(),
-    inspectionRunId: uuid("inspection_run_id").notNull(),
+    inspectionRunId: uuid("inspection_run_id"),
+    findingId: uuid("finding_id"),
+    correctiveActionId: uuid("corrective_action_id"),
     recipientUserId: uuid("recipient_user_id")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
@@ -730,10 +772,21 @@ export const inspectionFindings = pgTable(
     id: id(),
     organizationId: uuid("organization_id").notNull(),
     inspectionRunId: uuid("inspection_run_id").notNull(),
+    siteId: uuid("site_id").notNull(),
+    assetId: uuid("asset_id"),
     itemId: text("item_id"),
     title: text("title").notNull(),
     notes: text("notes"),
     severity: findingSeverityEnum("severity").notNull(),
+    status: findingStatusEnum("status").notNull().default("OPEN"),
+    assignedTo: uuid("assigned_to").references(() => users.id, { onDelete: "restrict" }),
+    detectedAt: timestamp("detected_at", { withTimezone: true }).notNull().defaultNow(),
+    dismissalReason: text("dismissal_reason"),
+    dismissedAt: timestamp("dismissed_at", { withTimezone: true }),
+    dismissedBy: uuid("dismissed_by").references(() => users.id, { onDelete: "restrict" }),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    verifiedBy: uuid("verified_by").references(() => users.id, { onDelete: "restrict" }),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
     createdBy: uuid("created_by")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
@@ -745,7 +798,216 @@ export const inspectionFindings = pgTable(
       columns: [table.organizationId, table.inspectionRunId],
       foreignColumns: [inspectionRuns.organizationId, inspectionRuns.id],
     }).onDelete("restrict"),
+    foreignKey({
+      name: "inspection_findings_site_tenant_fk",
+      columns: [table.organizationId, table.siteId],
+      foreignColumns: [sites.organizationId, sites.id],
+    }).onDelete("restrict"),
+    foreignKey({
+      name: "inspection_findings_asset_tenant_site_fk",
+      columns: [table.organizationId, table.siteId, table.assetId],
+      foreignColumns: [assets.organizationId, assets.siteId, assets.id],
+    }).onDelete("restrict"),
+    unique("inspection_findings_organization_id_unique").on(table.organizationId, table.id),
     index("inspection_findings_run_idx").on(table.inspectionRunId),
-    index("inspection_findings_attention_idx").on(table.organizationId, table.severity),
+    index("inspection_findings_attention_idx").on(
+      table.organizationId,
+      table.status,
+      table.severity,
+    ),
+  ],
+);
+
+export const correctiveActions = pgTable(
+  "corrective_actions",
+  {
+    id: id(),
+    organizationId: uuid("organization_id").notNull(),
+    findingId: uuid("finding_id").notNull(),
+    title: text("title").notNull(),
+    description: text("description").notNull(),
+    assignedTo: uuid("assigned_to")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    priority: findingSeverityEnum("priority").notNull(),
+    dueAt: timestamp("due_at", { withTimezone: true }).notNull(),
+    status: correctiveActionStatusEnum("status").notNull().default("OPEN"),
+    blockedReason: text("blocked_reason"),
+    completionNotes: text("completion_notes"),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    completedBy: uuid("completed_by").references(() => users.id, { onDelete: "restrict" }),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    verifiedBy: uuid("verified_by").references(() => users.id, { onDelete: "restrict" }),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    unique("corrective_actions_organization_id_unique").on(table.organizationId, table.id),
+    unique("corrective_actions_finding_unique").on(table.findingId),
+    foreignKey({
+      name: "corrective_actions_finding_tenant_fk",
+      columns: [table.organizationId, table.findingId],
+      foreignColumns: [inspectionFindings.organizationId, inspectionFindings.id],
+    }).onDelete("restrict"),
+    index("corrective_actions_queue_idx").on(table.organizationId, table.status, table.dueAt),
+    index("corrective_actions_assignee_idx").on(
+      table.organizationId,
+      table.assignedTo,
+      table.status,
+    ),
+  ],
+);
+
+export const findingTransitions = pgTable(
+  "finding_transitions",
+  {
+    id: id(),
+    organizationId: uuid("organization_id").notNull(),
+    findingId: uuid("finding_id").notNull(),
+    fromStatus: findingStatusEnum("from_status"),
+    toStatus: findingStatusEnum("to_status").notNull(),
+    actorUserId: uuid("actor_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    reason: text("reason"),
+    metadata: jsonb("metadata")
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    foreignKey({
+      name: "finding_transitions_finding_tenant_fk",
+      columns: [table.organizationId, table.findingId],
+      foreignColumns: [inspectionFindings.organizationId, inspectionFindings.id],
+    }).onDelete("restrict"),
+    index("finding_transitions_history_idx").on(
+      table.organizationId,
+      table.findingId,
+      table.createdAt,
+    ),
+  ],
+);
+
+export const correctiveActionTransitions = pgTable(
+  "corrective_action_transitions",
+  {
+    id: id(),
+    organizationId: uuid("organization_id").notNull(),
+    correctiveActionId: uuid("corrective_action_id").notNull(),
+    fromStatus: correctiveActionStatusEnum("from_status"),
+    toStatus: correctiveActionStatusEnum("to_status").notNull(),
+    actorUserId: uuid("actor_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    note: text("note"),
+    metadata: jsonb("metadata")
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    foreignKey({
+      name: "corrective_action_transitions_action_tenant_fk",
+      columns: [table.organizationId, table.correctiveActionId],
+      foreignColumns: [correctiveActions.organizationId, correctiveActions.id],
+    }).onDelete("restrict"),
+    index("corrective_action_transitions_history_idx").on(
+      table.organizationId,
+      table.correctiveActionId,
+      table.createdAt,
+    ),
+  ],
+);
+
+export const evidenceUploadGrants = pgTable(
+  "evidence_upload_grants",
+  {
+    id: id(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "restrict" }),
+    targetType: evidenceTargetTypeEnum("target_type").notNull(),
+    targetId: uuid("target_id").notNull(),
+    uploaderUserId: uuid("uploader_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    objectKey: text("object_key").notNull(),
+    originalName: text("original_name").notNull(),
+    contentType: text("content_type").notNull(),
+    expectedSize: bigint("expected_size", { mode: "number" }).notNull(),
+    expectedChecksum: text("expected_checksum").notNull(),
+    status: uploadGrantStatusEnum("status").notNull().default("ISSUED"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    finalizedAt: timestamp("finalized_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    unique("evidence_upload_grants_object_key_unique").on(table.objectKey),
+    index("evidence_upload_grants_cleanup_idx").on(table.status, table.expiresAt),
+    index("evidence_upload_grants_target_idx").on(
+      table.organizationId,
+      table.targetType,
+      table.targetId,
+    ),
+  ],
+);
+
+export const storageObjects = pgTable(
+  "storage_objects",
+  {
+    id: id(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "restrict" }),
+    uploadGrantId: uuid("upload_grant_id")
+      .notNull()
+      .references(() => evidenceUploadGrants.id, { onDelete: "restrict" }),
+    objectKey: text("object_key").notNull(),
+    originalName: text("original_name").notNull(),
+    contentType: text("content_type").notNull(),
+    size: bigint("size", { mode: "number" }).notNull(),
+    checksum: text("checksum").notNull(),
+    status: storageObjectStatusEnum("status").notNull().default("AVAILABLE"),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    unique("storage_objects_organization_id_unique").on(table.organizationId, table.id),
+    unique("storage_objects_upload_grant_unique").on(table.uploadGrantId),
+    unique("storage_objects_object_key_unique").on(table.objectKey),
+  ],
+);
+
+export const evidence = pgTable(
+  "evidence",
+  {
+    id: id(),
+    organizationId: uuid("organization_id").notNull(),
+    targetType: evidenceTargetTypeEnum("target_type").notNull(),
+    targetId: uuid("target_id").notNull(),
+    storageObjectId: uuid("storage_object_id").notNull(),
+    uploaderUserId: uuid("uploader_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    capturedAt: timestamp("captured_at", { withTimezone: true }),
+    uploadedAt: timestamp("uploaded_at", { withTimezone: true }).notNull().defaultNow(),
+    checksum: text("checksum").notNull(),
+    latitude: doublePrecision("latitude"),
+    longitude: doublePrecision("longitude"),
+    deviceMetadata: jsonb("device_metadata"),
+    note: text("note"),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    foreignKey({
+      name: "evidence_storage_object_tenant_fk",
+      columns: [table.organizationId, table.storageObjectId],
+      foreignColumns: [storageObjects.organizationId, storageObjects.id],
+    }).onDelete("restrict"),
+    unique("evidence_storage_object_unique").on(table.storageObjectId),
+    index("evidence_target_idx").on(table.organizationId, table.targetType, table.targetId),
   ],
 );

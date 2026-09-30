@@ -3,6 +3,7 @@ import type { createDatabase } from "@nexus/database";
 import { DynamicModule, Module } from "@nestjs/common";
 import type { AuthEmailDispatcher } from "@nexus/auth";
 import type { Queue } from "bullmq";
+import type { StorageProvider } from "@nexus/storage";
 
 import { RequestContextService } from "./context/request-context.service.js";
 import { HealthController } from "./health/health.controller.js";
@@ -15,12 +16,19 @@ import { OperationsController } from "./operations/operations.controller.js";
 import { OperationsService } from "./operations/operations.service.js";
 import { InspectionsController } from "./inspections/inspections.controller.js";
 import { InspectionsService } from "./inspections/inspections.service.js";
+import { FindingsController } from "./findings/findings.controller.js";
+import { FindingsService } from "./findings/findings.service.js";
+import { EvidenceController } from "./evidence/evidence.controller.js";
+import { EvidenceService } from "./evidence/evidence.service.js";
+import { SearchController } from "./search/search.controller.js";
+import { SearchService } from "./search/search.service.js";
 import {
   AUTH_TOKEN,
   DATABASE_TOKEN,
   EMAIL_DISPATCHER_TOKEN,
   IMPORT_QUEUE_TOKEN,
   INSPECTION_QUEUE_TOKEN,
+  STORAGE_TOKEN,
   WEB_URL_TOKEN,
 } from "./tokens.js";
 
@@ -30,6 +38,7 @@ export interface AppDependencies {
   emailDispatcher: AuthEmailDispatcher;
   importQueue: Queue;
   inspectionQueue: Queue;
+  storage: StorageProvider;
   webUrl: string;
 }
 
@@ -44,6 +53,9 @@ export class AppModule {
         MembershipsController,
         OperationsController,
         InspectionsController,
+        FindingsController,
+        EvidenceController,
+        SearchController,
       ],
       providers: [
         ReadinessService,
@@ -52,6 +64,7 @@ export class AppModule {
         { provide: EMAIL_DISPATCHER_TOKEN, useValue: dependencies.emailDispatcher },
         { provide: IMPORT_QUEUE_TOKEN, useValue: dependencies.importQueue },
         { provide: INSPECTION_QUEUE_TOKEN, useValue: dependencies.inspectionQueue },
+        { provide: STORAGE_TOKEN, useValue: dependencies.storage },
         { provide: WEB_URL_TOKEN, useValue: dependencies.webUrl },
         {
           provide: RequestContextService,
@@ -80,6 +93,22 @@ export class AppModule {
           inject: [DATABASE_TOKEN, INSPECTION_QUEUE_TOKEN],
           useFactory: (db: AppDependencies["db"], queue: Queue) =>
             new InspectionsService(db, queue),
+        },
+        {
+          provide: FindingsService,
+          inject: [DATABASE_TOKEN],
+          useFactory: (db: AppDependencies["db"]) => new FindingsService(db),
+        },
+        {
+          provide: EvidenceService,
+          inject: [DATABASE_TOKEN, STORAGE_TOKEN],
+          useFactory: (db: AppDependencies["db"], storage: StorageProvider) =>
+            new EvidenceService(db, storage),
+        },
+        {
+          provide: SearchService,
+          inject: [DATABASE_TOKEN],
+          useFactory: (db: AppDependencies["db"]) => new SearchService(db),
         },
       ],
     };

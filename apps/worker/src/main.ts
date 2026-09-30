@@ -9,15 +9,20 @@ import {
   type AuthEmailJob,
   type ProcessImportJob,
   type GenerateInspectionRunsJob,
+  cleanupEvidenceUploadsJobName,
+  systemQueueName,
+  type CleanupEvidenceUploadsJob,
 } from "@nexus/contracts";
 import { createDatabase } from "@nexus/database";
 import { Queue, Worker } from "bullmq";
 import nodemailer from "nodemailer";
+import { S3StorageProvider } from "@nexus/storage";
 
 import { renderAuthEmail } from "./auth-email.js";
 import { processImport } from "./process-import.js";
 import { generateInspectionRuns } from "./generate-inspection-runs.js";
 import { dispatchInspectionNotifications } from "./inspection-notifications.js";
+import { cleanupExpiredEvidenceUploads } from "./evidence-cleanup.js";
 
 function parseRedisConnection(redisUrl: string) {
   const parsed = new URL(redisUrl);
@@ -33,7 +38,15 @@ function parseRedisConnection(redisUrl: string) {
 const environment = parseServerEnvironment(process.env);
 const connection = parseRedisConnection(environment.REDIS_URL);
 const database = createDatabase(environment.DATABASE_URL);
-const systemQueue = new Queue("nexus-system", { connection });
+const systemQueue = new Queue<CleanupEvidenceUploadsJob>(systemQueueName, { connection });
+const storage = new S3StorageProvider({
+  endpoint: environment.S3_ENDPOINT,
+  region: environment.S3_REGION,
+  bucket: environment.S3_BUCKET,
+  accessKeyId: environment.S3_ACCESS_KEY,
+  secretAccessKey: environment.S3_SECRET_KEY,
+  forcePathStyle: process.env.S3_FORCE_PATH_STYLE !== "false",
+});
 const transporter = nodemailer.createTransport({
   host: environment.SMTP_HOST,
   port: environment.SMTP_PORT,
@@ -79,6 +92,15 @@ const inspectionWorker = new Worker<GenerateInspectionRunsJob>(
   },
   { connection, concurrency: 2 },
 );
+const systemWorker = new Worker<CleanupEvidenceUploadsJob>(
+  systemQueueName,
+  async (job) => {
+    if (job.name !== cleanupEvidenceUploadsJobName)
+      throw new Error(`Unsupported system job: ${job.name}`);
+    await cleanupExpiredEvidenceUploads(database.db, storage, new Date(job.data.requestedAt));
+  },
+  { connection, concurrency: 1 },
+);
 inspectionWorker.on("failed", (job, error) => {
   const cause =
     error.cause instanceof Error
@@ -110,6 +132,7 @@ async function shutdown(signal: string): Promise<void> {
     inspectionWorker.close(),
     inspectionQueue.close(),
     systemQueue.close(),
+    systemWorker.close(),
     database.close(),
   ]);
   transporter.close();
@@ -117,6 +140,7 @@ async function shutdown(signal: string): Promise<void> {
 }
 
 async function bootstrap(): Promise<void> {
+  await storage.ensureBucket();
   await inspectionQueue.add(
     generateInspectionRunsJobName,
     { horizonDays: 35, requestedAt: new Date().toISOString() },
@@ -127,11 +151,22 @@ async function bootstrap(): Promise<void> {
       backoff: { type: "exponential", delay: 1_000 },
     },
   );
+  await systemQueue.add(
+    cleanupEvidenceUploadsJobName,
+    { requestedAt: new Date().toISOString() },
+    {
+      jobId: "evidence-orphan-cleanup",
+      repeat: { every: 15 * 60 * 1_000 },
+      attempts: 8,
+      backoff: { type: "exponential", delay: 2_000 },
+    },
+  );
   await Promise.all([
     systemQueue.waitUntilReady(),
     emailWorker.waitUntilReady(),
     importWorker.waitUntilReady(),
     inspectionWorker.waitUntilReady(),
+    systemWorker.waitUntilReady(),
     transporter.verify(),
   ]);
   console.info(JSON.stringify({ level: "info", service: "worker", event: "ready" }));

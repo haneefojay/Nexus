@@ -23,9 +23,9 @@ Finding/action transitions, evidence authorization, signed URLs, completion tran
 
 ## Definition of Done
 
-- [ ] Failed observation can become a finding.
-- [ ] Finding can produce one corrective action.
-- [ ] Assignee can complete with evidence.
-- [ ] Authorized reviewer can verify and close.
-- [ ] Critical findings require verification.
-- [ ] Complete history is reconstructable and tenant safe.
+- [x] Failed observation can become a finding.
+- [x] Finding can produce one corrective action.
+- [x] Assignee can complete with evidence.
+- [x] Authorized reviewer can verify and close.
+- [x] Critical findings require verification.
+- [x] Complete history is reconstructable and tenant safe.

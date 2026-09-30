@@ -27,6 +27,11 @@ export interface GenerateInspectionRunsJob {
   horizonDays: number;
   requestedAt: string;
 }
+export const systemQueueName = "nexus-system" as const;
+export const cleanupEvidenceUploadsJobName = "cleanup-evidence-uploads" as const;
+export interface CleanupEvidenceUploadsJob {
+  requestedAt: string;
+}
 export const apiVersion = "v1" as const;
 
 export interface ApiErrorDetail {
