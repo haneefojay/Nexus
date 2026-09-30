@@ -29,7 +29,7 @@ cleanup() {
   rm -f "$api_log" "$owner_cookie" "$tech_cookie" "$evidence_file"
 }
 trap cleanup EXIT
-trap 'echo "Phase 3 lifecycle failed at line $LINENO"; tail -n 80 "$api_log"' ERR
+trap 'printf "line=%s\napi=%s\n" "$LINENO" "$(tail -n 30 "$api_log" | tr "\n" " " | tail -c 3000)" >/tmp/phase-three-lifecycle-failure.txt; echo "Phase 3 lifecycle failed at line $LINENO"; tail -n 80 "$api_log"' ERR
 
 pnpm --filter @nexus/api exec tsx src/main.ts >"$api_log" 2>&1 &
 api_pid=$!

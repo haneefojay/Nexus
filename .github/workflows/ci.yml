@@ -60,6 +60,13 @@ jobs:
       - run: bash scripts/check-phase-three-database.sh
       - run: bash scripts/check-phase-three-lifecycle.sh
       - if: failure()
+        name: Report Phase 3 smoke failure
+        run: |
+          if [[ -f /tmp/phase-three-lifecycle-failure.txt ]]; then
+            diagnostic=$(tr '\n' ';' </tmp/phase-three-lifecycle-failure.txt)
+            echo "::error title=Phase 3 smoke diagnostics::$diagnostic"
+          fi
+      - if: failure()
         name: Report Phase 2 smoke failure
         run: |
           if [[ -f /tmp/phase-two-inspections-failure.txt ]]; then
