@@ -711,9 +711,7 @@ export const inspectionResponses = pgTable(
   {
     id: id(),
     organizationId: uuid("organization_id").notNull(),
-    inspectionRunId: uuid("inspection_run_id"),
-    findingId: uuid("finding_id"),
-    correctiveActionId: uuid("corrective_action_id"),
+    inspectionRunId: uuid("inspection_run_id").notNull(),
     itemId: text("item_id").notNull(),
     value: jsonb("value").notNull(),
     numericValue: doublePrecision("numeric_value"),

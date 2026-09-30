@@ -177,8 +177,11 @@ response_status=$(curl --silent --output "$response_output" --write-out '%{http_
   --data '{"responses":[{"itemId":"condition","value":true},{"itemId":"voltage","value":240}],"notes":"All checks complete"}' \
   "http://localhost:3001/v1/inspection-runs/$run_id/responses")
 if [[ "$response_status" != "200" && "$response_status" != "201" ]]; then
-  printf 'checkpoint=response persistence\nstatus=%s\nbody=%s\n' \
-    "$response_status" "$(cat "$response_output")" >/tmp/phase-two-inspections-failure.txt
+  printf 'checkpoint=response persistence\nstatus=%s\nbody=%s\napi=%s\nworker=%s\n' \
+    "$response_status" "$(cat "$response_output")" \
+    "$(tail -n 40 "$api_log" 2>/dev/null | tr '\n' ' ' | tail -c 4000)" \
+    "$(tail -n 20 "$worker_log" 2>/dev/null | tr '\n' ' ' | tail -c 2000)" \
+    >/tmp/phase-two-inspections-failure.txt
   cat "$response_output"
   rm -f "$response_output"
   exit 1
