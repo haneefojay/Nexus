@@ -7,7 +7,7 @@ import {
   type createDatabase,
 } from "@nexus/database";
 import type { OrganizationCreateInput } from "@nexus/validation";
-import { ConflictException, Injectable } from "@nestjs/common";
+import { ConflictException, Injectable, InternalServerErrorException } from "@nestjs/common";
 
 @Injectable()
 export class OrganizationsService {
@@ -46,6 +46,11 @@ export class OrganizationsService {
       if (isUniqueViolation(error)) {
         throw new ConflictException("Organization could not be created with those details");
       }
+      if (process.env.NODE_ENV === "test") {
+        throw new InternalServerErrorException(
+          `Organization persistence failed (${databaseErrorCode(error)})`,
+        );
+      }
       throw error;
     }
   }
@@ -65,8 +70,13 @@ export class OrganizationsService {
   }
 }
 
-function isUniqueViolation(error: unknown): boolean {
-  if (typeof error !== "object" || error === null) return false;
+function databaseErrorCode(error: unknown): string {
+  if (typeof error !== "object" || error === null) return "unknown";
   const candidate = error as { code?: unknown; cause?: { code?: unknown } };
-  return candidate.code === "23505" || candidate.cause?.code === "23505";
+  const code = candidate.code ?? candidate.cause?.code;
+  return typeof code === "string" && /^[A-Z0-9]{5}$/.test(code) ? code : "unknown";
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return databaseErrorCode(error) === "23505";
 }
