@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main, dev, "phase-2/**", "phase-3/**", "phase-4/**"]
+    branches: [main, dev, "phase-2/**", "phase-3/**", "phase-4/**", "phase-5/**"]
 
 permissions:
   contents: read
@@ -60,6 +60,7 @@ jobs:
       - run: bash scripts/check-phase-three-database.sh
       - run: bash scripts/check-phase-three-lifecycle.sh
       - run: bash scripts/check-phase-four-database.sh
+      - run: bash scripts/check-phase-five-reports.sh
       - if: failure()
         name: Report Phase 3 smoke failure
         run: |
