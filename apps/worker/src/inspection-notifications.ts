@@ -110,7 +110,7 @@ export async function dispatchInspectionNotifications(
         .where(
           and(
             eq(inspectionNotificationIntents.id, intent.id),
-            eq(inspectionNotificationIntents.status, "PENDING"),
+            eq(inspectionNotificationIntents.status, "SENDING"),
           ),
         );
       sent += 1;
