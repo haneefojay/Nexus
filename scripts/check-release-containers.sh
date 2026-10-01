@@ -57,11 +57,18 @@ docker run -d --name "$worker_name" --network host --env-file .env "nexus-worker
 wait_for_log "$worker_name" 'worker.ready'
 start_api
 docker run -d --name "$web_name" --network host --env-file .env "nexus-web:$release_sha" >/dev/null
+web_ready=false
 for _ in $(seq 1 60); do
-  curl --fail --silent http://localhost:3000/signin >/dev/null && break
+  if curl --fail --silent http://localhost:3000/signin >/dev/null; then
+    web_ready=true
+    break
+  fi
   sleep 1
 done
-curl --fail --silent http://localhost:3000/signin >/dev/null
+if [[ "$web_ready" != true ]]; then
+  docker logs "$web_name" >&2 || true
+  exit 1
+fi
 
 # Replace the API while its dependencies and worker stay available.
 docker stop --time 20 "$api_name" >/dev/null
