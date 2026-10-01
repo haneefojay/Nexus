@@ -204,7 +204,7 @@ function InspectionDashboard({ dashboard }: { dashboard: Dashboard }) {
         <Metric label="Overdue" value={dashboard.summary.overdue} alert />
         <Metric label="Completed · 30 days" value={dashboard.summary.completed_recently} />
       </div>
-      <div className="data-table">
+      <div aria-label="Inspection coverage by site" className="data-table" tabIndex={0}>
         <table>
           <thead>
             <tr>

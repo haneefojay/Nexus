@@ -592,7 +592,7 @@ function DataSection({
 }
 function DataTable({ headers, rows }: { headers: string[]; rows: (string | number)[][] }) {
   return (
-    <div className="table-wrap">
+    <div aria-label={headers.join(", ")} className="table-wrap" tabIndex={0}>
       <table>
         <thead>
           <tr>
