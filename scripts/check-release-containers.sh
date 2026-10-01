@@ -78,6 +78,8 @@ if [[ "$web_ready" != true ]]; then
   docker logs "$web_name" >&2 || true
   false
 fi
+CI= RELEASE_FULL_STACK=1 PLAYWRIGHT_BASE_URL=http://localhost:3000 \
+  pnpm exec playwright test tests/e2e/release-full-stack.spec.ts --project=chromium
 
 # Replace the API while its dependencies and worker stay available.
 docker stop --time 20 "$api_name" >/dev/null

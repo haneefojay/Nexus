@@ -170,6 +170,7 @@ jobs:
           SMTP_PORT: 1025
           ALLOW_DEMO_SEED: "true"
           DEMO_PASSWORD: fictional-local-password
+      - run: pnpm exec playwright install --with-deps chromium
       - name: Build and exercise release containers
         run: bash scripts/check-release-containers.sh
       - name: Create release manifest
