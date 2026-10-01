@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test";
 
-async function mockInspectionApi(page: import("@playwright/test").Page) {
+async function mockInspectionApi(
+  page: import("@playwright/test").Page,
+  options: { includeRun?: boolean } = {},
+) {
   await page.route(/\/v1\//, async (route) => {
     const path = new URL(route.request().url()).pathname;
     const data: Record<string, unknown> = {
@@ -32,7 +35,45 @@ async function mockInspectionApi(page: import("@playwright/test").Page) {
       "/v1/members": [{ id: "user-1", name: "Field Lead", role: "TECHNICIAN", status: "ACTIVE" }],
       "/v1/inspection-templates": [],
       "/v1/inspection-plans": [],
-      "/v1/inspection-runs": [],
+      "/v1/inspection-runs": options.includeRun
+        ? [
+            {
+              id: "run-1",
+              siteId: "site-1",
+              assetId: "asset-1",
+              status: "IN_PROGRESS",
+              scheduledFor: "2026-09-30T12:00:00.000Z",
+              dueAt: "2026-10-01T12:00:00.000Z",
+              overdue: false,
+            },
+          ]
+        : [],
+      "/v1/inspection-runs/run-1": {
+        id: "run-1",
+        siteId: "site-1",
+        assetId: "asset-1",
+        status: "IN_PROGRESS",
+        scheduledFor: "2026-09-30T12:00:00.000Z",
+        dueAt: "2026-10-01T12:00:00.000Z",
+        overdue: false,
+        notes: null,
+        template: {
+          sections: [
+            {
+              title: "Safety",
+              items: [
+                {
+                  id: "guard",
+                  label: "Guard secure",
+                  responseType: "PASS_FAIL",
+                  required: true,
+                },
+              ],
+            },
+          ],
+        },
+        responses: [],
+      },
       "/v1/inspection-dashboard": {
         summary: { due: 2, overdue: 1, completed_recently: 6 },
         coverage: [
@@ -88,4 +129,22 @@ test("mobile inspection views avoid overflow and expose semantic navigation", as
   await expect(page.getByText(/No runs yet/)).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
   expect(overflow).toBeLessThanOrEqual(1);
+});
+
+test("historical inspection snapshots without section ids render without React key warnings", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name.includes("mobile"), "One rendering regression is sufficient");
+  const keyWarnings: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error" && message.text().includes('unique "key" prop'))
+      keyWarnings.push(message.text());
+  });
+  await mockInspectionApi(page, { includeRun: true });
+  await enterAuthenticatedShell(page);
+  await page.getByRole("button", { name: "Inspection runs" }).click();
+  await page.getByRole("button", { name: "Open inspection" }).click();
+  await expect(page.getByRole("heading", { name: "Complete inspection" })).toBeVisible();
+  await expect(page.getByLabel(/Guard secure/)).toBeVisible();
+  expect(keyWarnings).toEqual([]);
 });

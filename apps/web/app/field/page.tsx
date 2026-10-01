@@ -345,8 +345,8 @@ function InspectionExecution({
         {completed} of {items.length} responses complete
       </p>
 
-      {assignment.snapshot.template.sections.map((section) => (
-        <fieldset disabled={locked} key={section.id}>
+      {assignment.snapshot.template.sections.map((section, sectionIndex) => (
+        <fieldset disabled={locked} key={section.id ?? `${sectionIndex}-${section.title}`}>
           <legend>{section.title}</legend>
           {section.instructions && <p>{section.instructions}</p>}
           {section.items.map((item) => (

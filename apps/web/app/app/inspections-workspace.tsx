@@ -39,7 +39,7 @@ type RunDetail = Run & {
   notes: string | null;
   template: {
     sections: {
-      id: string;
+      id?: string;
       title: string;
       instructions?: string;
       items: {
@@ -680,8 +680,8 @@ function RunExecution({
             void submit();
           }}
         >
-          {run.template.sections.map((section) => (
-            <fieldset key={section.id}>
+          {run.template.sections.map((section, sectionIndex) => (
+            <fieldset key={section.id ?? `${sectionIndex}-${section.title}`}>
               <legend>{section.title}</legend>
               {section.instructions && <p>{section.instructions}</p>}
               {section.items.map((item) => (

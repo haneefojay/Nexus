@@ -82,4 +82,13 @@ test("reporting experience reflows on mobile", async ({ page }, testInfo) => {
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
   ).toBeLessThanOrEqual(1);
+  for (const element of [
+    page.getByText("Spreadsheet formulas are neutralized."),
+    page.getByRole("button", { name: "Request CSV" }),
+  ]) {
+    const box = await element.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(await page.evaluate(() => window.innerWidth));
+  }
 });
