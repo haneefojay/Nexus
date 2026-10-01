@@ -187,19 +187,23 @@ async function shutdown(signal: string): Promise<void> {
   if (shuttingDown) return;
   shuttingDown = true;
   logger.log("info", "worker.shutdown", { signal });
-  await Promise.allSettled([
+  const workers = await Promise.allSettled([
     emailWorker.close(),
     importWorker.close(),
     inspectionWorker.close(),
     reportWorker.close(),
     exportWorker.close(),
+    systemWorker.close(),
+  ]);
+  const resources = await Promise.allSettled([
     inspectionQueue.close(),
     systemQueue.close(),
-    systemWorker.close(),
     database.close(),
   ]);
   transporter.close();
-  process.exit(0);
+  if ([...workers, ...resources].some((result) => result.status === "rejected")) {
+    process.exitCode = 1;
+  }
 }
 
 async function bootstrap(): Promise<void> {

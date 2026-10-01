@@ -19,7 +19,7 @@ export SMTP_HOST=localhost
 export SMTP_PORT=1025
 
 log_file=$(mktemp)
-pnpm --filter @nexus/api exec tsx src/main.ts >"$log_file" 2>&1 &
+pnpm --filter @nexus/api exec tsx --conditions=nexus-source src/main.ts >"$log_file" 2>&1 &
 api_pid=$!
 cleanup() {
   kill "$api_pid" 2>/dev/null || true
@@ -100,7 +100,7 @@ import_id=$(jq -er '.data.id' <<<"$preview")
 jq -e '.data.status == "READY" and .data.validRows == 1' <<<"$preview" >/dev/null
 curl --fail --silent --cookie "$cookie_jar" -H "x-organization-id: $organization_id" -X POST "http://localhost:3001/v1/imports/$import_id/confirm" >/dev/null
 worker_log=$(mktemp)
-pnpm --filter @nexus/worker exec tsx src/main.ts >"$worker_log" 2>&1 &
+pnpm --filter @nexus/worker exec tsx --conditions=nexus-source src/main.ts >"$worker_log" 2>&1 &
 worker_pid=$!
 for _ in $(seq 1 30); do
   import_status=$("${psql[@]}" -c "SELECT status FROM import_jobs WHERE id = '$import_id';")

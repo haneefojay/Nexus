@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main, dev, "phase-2/**", "phase-3/**", "phase-4/**", "phase-5/**"]
+    branches: [main, dev, "phase-2/**", "phase-3/**", "phase-4/**", "phase-5/**", "phase-6/**"]
 
 permissions:
   contents: read
@@ -14,6 +14,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
         with:
           version: 12.8.1
@@ -29,6 +31,7 @@ jobs:
       - run: pnpm test
       - run: pnpm build
       - run: bash scripts/check-secrets.sh
+      - run: bash scripts/check-migration-history.sh
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
       - run: pnpm audit --audit-level high
@@ -38,6 +41,8 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
         with:
           version: 12.8.1
@@ -82,6 +87,26 @@ jobs:
           SMTP_PORT: 1025
           ALLOW_DEMO_SEED: "true"
           DEMO_PASSWORD: fictional-local-password
+      - name: Verify demo reseed and reset
+        run: bash scripts/check-demo-reset.sh
+        env:
+          NODE_ENV: development
+          WEB_URL: http://localhost:3000
+          API_URL: http://localhost:3001
+          DATABASE_URL: postgresql://nexus:nexus_local_only@localhost:5432/nexus
+          REDIS_URL: redis://localhost:6379
+          S3_ENDPOINT: http://localhost:9000
+          S3_REGION: us-east-1
+          S3_BUCKET: nexus-local
+          S3_ACCESS_KEY: nexus
+          S3_SECRET_KEY: nexus_local_only
+          BETTER_AUTH_SECRET: replace-with-at-least-32-random-characters
+          BETTER_AUTH_URL: http://localhost:3001
+          EMAIL_FROM: no-reply@nexus.local
+          SMTP_HOST: localhost
+          SMTP_PORT: 1025
+          ALLOW_DEMO_SEED: "true"
+          DEMO_PASSWORD: fictional-local-password
       - run: bash scripts/check-backup-restore.sh
       - run: bash scripts/check-phase-five-performance.sh
       - if: failure()
@@ -102,3 +127,59 @@ jobs:
         run: docker compose ps -a && docker compose logs --no-color
       - if: always()
         run: docker compose down -v
+
+  release-candidate:
+    if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/heads/phase-6/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.8.1
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: cp .env.example .env
+      - run: docker compose up -d --wait
+      - run: pnpm --filter @nexus/database db:migrate
+        env:
+          DATABASE_URL: postgresql://nexus:nexus_local_only@localhost:5432/nexus
+      - name: Seed fictional demo
+        run: pnpm --filter @nexus/api seed:demo
+        env:
+          NODE_ENV: development
+          WEB_URL: http://localhost:3000
+          API_URL: http://localhost:3001
+          DATABASE_URL: postgresql://nexus:nexus_local_only@localhost:5432/nexus
+          REDIS_URL: redis://localhost:6379
+          S3_ENDPOINT: http://localhost:9000
+          S3_REGION: us-east-1
+          S3_BUCKET: nexus-local
+          S3_ACCESS_KEY: nexus
+          S3_SECRET_KEY: nexus_local_only
+          BETTER_AUTH_SECRET: replace-with-at-least-32-random-characters
+          BETTER_AUTH_URL: http://localhost:3001
+          EMAIL_FROM: no-reply@nexus.local
+          SMTP_HOST: localhost
+          SMTP_PORT: 1025
+          ALLOW_DEMO_SEED: "true"
+          DEMO_PASSWORD: fictional-local-password
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Build and exercise release containers
+        run: bash scripts/check-release-containers.sh
+      - name: Create release manifest
+        run: bash scripts/create-release-manifest.sh
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-candidate-digests
+          path: |
+            release-artifacts/container-digests.txt
+            release-artifacts/release-manifest.json
+          if-no-files-found: error

@@ -1,2 +1,15 @@
+export const authEmailJobName = "auth-email";
+export const emailQueueName = "nexus-email";
+export const importQueueName = "nexus-imports";
+export const processImportJobName = "process-import";
+export const inspectionQueueName = "nexus-inspections";
+export const generateInspectionRunsJobName = "generate-inspection-runs";
+export const exportQueueName = "nexus-exports";
+export const generateOperationalExportJobName = "generate-operational-export";
+export const reportQueueName = "nexus-reports";
+export const generateInspectionReportJobName = "generate-inspection-report";
+export const systemQueueName = "nexus-system";
+export const cleanupArtifactsJobName = "cleanup-expired-artifacts";
+export const cleanupEvidenceUploadsJobName = "cleanup-evidence-uploads";
 export const apiVersion = "v1";
 //# sourceMappingURL=index.js.map

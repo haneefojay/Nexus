@@ -17,6 +17,7 @@
 html {
   scroll-behavior: smooth;
   background: var(--ink);
+  overflow-x: clip;
 }
 body {
   margin: 0;

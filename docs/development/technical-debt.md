@@ -7,3 +7,6 @@
 | TD-003 | Marketing claims implied telemetry/prediction                     | Existing site predated narrowed MVP thesis                      | Copy now labels the demonstration as illustrative and uses inspection/evidence language | High     | Phase 0 content pass         | Closed     |
 
 Debt is not a substitute for roadmap work. Close items by linking the validating change or test.
+
+| TD-004 | Local MinIO image is a pinned community fork of an archived upstream distribution | Reproducible non-production S3 behavior is still required | Production cannot treat the local image as an approved maintained storage service | High | Operator deployment decision | Open |
+| TD-005 | Human assistive-technology matrix cannot run in agent CI | Screen readers and managed high-contrast environments require human devices | Automated and agent manual evidence is complete; human AT review remains an approval activity | Medium | Release approval | Open |

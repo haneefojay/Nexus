@@ -88,3 +88,16 @@ The verification column defines the minimum evidence. Critical security/offline 
 | NFR-DATA-003    | Submitted inspections and audit events are append-only                                                                  | Phase 2 | Cross-cutting   | N/A                          | DB/domain tests             | Verified |
 | NFR-OFFLINE-001 | No local mutation or evidence is silently lost across reload, retry, or reconnect                                       | Phase 4 | Cross-cutting   | N/A                          | IndexedDB + offline E2E     | Verified |
 | NFR-OFFLINE-002 | Sync state explicitly distinguishes local persistence from server acceptance                                            | Phase 4 | Cross-cutting   | N/A                          | E2E + UX review             | Verified |
+
+## Phase 6 release evidence
+
+| Gate                         | Verification                                                                                                                            |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| RC baseline/artifacts        | `release-manifest.json`, image IDs, archive SHA-256 digests, OpenAPI/package `1.0.0-rc.1`                                               |
+| Regression/security          | CI quality gate, dependency audit, repository secret script, migration immutability, tenant/domain suites, log sentinel fault injection |
+| Offline/mobile/accessibility | Existing offline recovery suite plus real-stack service-worker reload, desktop/Pixel 7 axe, keyboard/tree/reflow record                 |
+| Reports/exports truth        | Real authenticated worker generation and downloaded `%PDF-`/CSV content checks                                                          |
+| Readiness/observability      | Exact migration ledger, dependency/worker readiness, structured error/log tests, production-mode redaction scan                         |
+| Performance                  | Existing 250-site/10,000-asset PostGIS and bounded worker benchmarks rerun without threshold changes                                    |
+| Recovery                     | PostgreSQL/object backup checksums, archive extraction, referenced-object validation, Phase 5-on-RC-schema probe, RC forward-fix        |
+| Demo                         | Seed/reseed/reset semantic fingerprint equality                                                                                         |

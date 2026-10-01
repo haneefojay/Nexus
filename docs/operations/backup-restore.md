@@ -5,3 +5,7 @@
 Run `scripts/check-backup-restore.sh` only against disposable or approved non-production Compose infrastructure. It restores PostgreSQL into `nexus_restore_rehearsal`, validates checksums and the object archive, and checks tenant, inspection, report/export, immutable history, and field-sync references before deleting the disposable database. Production restore requires change approval, an isolated target, credential rotation, object restoration before traffic, migrations only after the restored version starts, readiness checks, and sampled authorized downloads.
 
 The product specification does not authorize numeric production retention, RPO, or RTO values. Operators must set and approve them for the deployment environment; Phase 5 verifies procedure mechanics without inventing those policies. Never use these scripts with implicit production credentials or destructive defaults.
+
+## Phase 6 evidence
+
+The rehearsal now extracts the object archive and checks every available evidence object and every completed report/export object key referenced by the restored database. A checksum-valid archive with missing referenced objects fails promotion. Numeric production retention, RPO, and RTO remain operator decisions and are not inferred by the RC.

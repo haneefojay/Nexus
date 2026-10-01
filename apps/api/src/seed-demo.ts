@@ -48,6 +48,9 @@ async function main(): Promise<void> {
       "Fictional NEXUS demo evidence. No real person, customer, or location data.\n",
     );
     const checksum = createHash("sha256").update(body).digest("hex");
+    const templateSchema =
+      '{"sections":[{"title":"Safety","items":[{"id":"guard","label":"Guard secure","responseType":"BOOLEAN","required":true}]}]}';
+    const templateChecksum = createHash("sha256").update(templateSchema).digest("hex");
     const existing = (await database.client.unsafe(
       `select object_key from evidence_upload_grants where id = '${ids.grant}'`,
     )) as { object_key: string }[];
@@ -82,8 +85,8 @@ async function main(): Promise<void> {
       INSERT INTO sites(id,organization_id,name,reference,type,status,address,location,created_by) VALUES('${ids.site}','${ids.organization}','Fictional Riverside Facility','DEMO-RIVER','OTHER','ACTIVE','Fictional address — not a real location',ST_SetSRID(ST_MakePoint(3.38,6.52),4326),'${ids.user}') ON CONFLICT(id) DO NOTHING;
       INSERT INTO asset_types(id,organization_id,name,category) VALUES('${ids.type}','${ids.organization}','Fictional Pump','DEMO') ON CONFLICT(id) DO NOTHING;
       INSERT INTO assets(id,organization_id,site_id,asset_type_id,identifier,name,status,condition,location) VALUES('${ids.asset}','${ids.organization}','${ids.site}','${ids.type}','DEMO-PUMP-001','Fictional circulation pump','ACTIVE','ATTENTION',ST_SetSRID(ST_MakePoint(3.381,6.521),4326)) ON CONFLICT(id) DO NOTHING;
-      INSERT INTO inspection_templates(id,organization_id,name,status,draft_schema,latest_version,created_by) VALUES('${ids.template}','${ids.organization}','Fictional pump safety inspection','PUBLISHED','{"sections":[{"title":"Safety","items":[{"id":"guard","label":"Guard secure","responseType":"BOOLEAN","required":true}]}]}',1,'${ids.user}') ON CONFLICT(id) DO NOTHING;
-      INSERT INTO inspection_template_versions(id,organization_id,template_id,version_number,schema,checksum,created_by) VALUES('${ids.version}','${ids.organization}','${ids.template}',1,'{"sections":[{"title":"Safety","items":[{"id":"guard","label":"Guard secure","responseType":"BOOLEAN","required":true}]}]}',repeat('a',64),'${ids.user}') ON CONFLICT(id) DO NOTHING;
+      INSERT INTO inspection_templates(id,organization_id,name,status,draft_schema,latest_version,created_by) VALUES('${ids.template}','${ids.organization}','Fictional pump safety inspection','PUBLISHED',${literal(templateSchema)},1,'${ids.user}') ON CONFLICT(id) DO NOTHING;
+      INSERT INTO inspection_template_versions(id,organization_id,template_id,version_number,schema,checksum,created_by) VALUES('${ids.version}','${ids.organization}','${ids.template}',1,${literal(templateSchema)},${literal(templateChecksum)},'${ids.user}') ON CONFLICT(id) DO UPDATE SET checksum=excluded.checksum WHERE inspection_template_versions.checksum=repeat('a',64);
       INSERT INTO inspection_plans(id,organization_id,template_version_id,name,target_type,site_id,asset_id,recurrence_type,starts_at,assigned_user_id,next_due_at,created_by,next_sequence) VALUES('${ids.plan}','${ids.organization}','${ids.version}','Fictional monthly safety plan','ASSET','${ids.site}','${ids.asset}','MONTHLY','2026-09-01T09:00:00Z','${ids.user}','2026-11-01T09:00:00Z','${ids.user}',1) ON CONFLICT(id) DO NOTHING;
       INSERT INTO inspection_runs(id,organization_id,inspection_plan_id,template_version_id,site_id,asset_id,assigned_to,sequence,status,scheduled_for,due_at,started_at,submitted_at,approved_at,closed_at,notes) VALUES('${ids.run}','${ids.organization}','${ids.plan}','${ids.version}','${ids.site}','${ids.asset}','${ids.user}',0,'CLOSED','2026-09-01T09:00:00Z','2026-09-02T09:00:00Z','2026-09-01T09:05:00Z','2026-09-01T09:20:00Z','2026-09-01T10:00:00Z','2026-09-01T10:00:00Z','Fictional demo record') ON CONFLICT(id) DO NOTHING;
       INSERT INTO inspection_responses(id,organization_id,inspection_run_id,item_id,value,captured_by) VALUES('${ids.response}','${ids.organization}','${ids.run}','guard','false','${ids.user}') ON CONFLICT(id) DO NOTHING;

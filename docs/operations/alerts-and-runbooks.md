@@ -12,3 +12,11 @@
 | Security                    | secret scan, cross-tenant, or high audit failure                  | stop release, rotate exposed material if applicable, follow incident response procedure                       |
 
 Every alert links to this catalogue plus the deployment and backup/restore runbooks. Alerts contain identifiers and classifications only, never tenant payloads or private URLs.
+
+## Phase 6 incident checklist
+
+1. Declare the observed symptom and correlation/request/job IDs without copying tenant payloads, credentials, signed URLs, or query tokens.
+2. Check component readiness in order: migration ledger, PostgreSQL, Redis/workers, private object storage, API, then web.
+3. Stop rollout and new work for cross-tenant, secret exposure, migration mismatch, missing recovery object, or exhausted report/export retry findings.
+4. Preserve the release manifest, image digests, logs, audit events, and recovery set; rotate exposed material through the operator-approved secret system.
+5. Use the rollback/forward-fix checklist and the approved incident destination. No vendor, destination, severity owner, or response-time promise is assumed here.

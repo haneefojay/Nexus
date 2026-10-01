@@ -1,8 +1,8 @@
 # NEXUS Delivery Roadmap
 
 **Current Phase: 6**  
-**Status: Phase 6 — READY**
-**Next Gate: Phase 6 Release Definition of Done**
+**Status: Phase 6 — RELEASE CANDIDATE READY**  
+**Next Gate: Human review and explicit production approval**
 
 | Phase                     | Goal                                                                                                    | Status   |
 | ------------------------- | ------------------------------------------------------------------------------------------------------- | -------- |
@@ -12,6 +12,6 @@
 | 3 — Findings & Actions    | Deliver findings, corrective actions, evidence, verification, history, and notifications                | Complete |
 | 4 — Offline Field         | Deliver PWA field execution, IndexedDB, evidence queue, idempotent sync, and recovery                   | Complete |
 | 5 — Reporting & Hardening | Deliver reports, exports, accessibility, observability, security, performance, and deployment hardening | Complete |
-| 6 — Release               | Validate the complete release candidate and production readiness                                        | Ready    |
+| 6 — Release               | Validate the complete release candidate and production readiness                                        | Complete |
 
 Phase details and Definitions of Done live in the sibling phase documents. Do not advance the current phase until its checklist is complete.

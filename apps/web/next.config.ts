@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.join(process.cwd(), "../.."),
   },
+  webpack(config: { resolve: { conditionNames?: string[] } }) {
+    // Workspace packages expose TypeScript source under this condition and compiled JS by default.
+    config.resolve.conditionNames = ["nexus-source", ...(config.resolve.conditionNames ?? ["..."])];
+    return config;
+  },
 };
 
 const withSerwist = withSerwistInit({
