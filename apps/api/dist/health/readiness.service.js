@@ -7,7 +7,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { sql } from "@nexus/database";
+import { expectedMigrationCount, latestExpectedMigrationTimestamp, sql, } from "@nexus/database";
 import { Injectable } from "@nestjs/common";
 async function bounded(p, ms = 1500) {
     let t;
@@ -33,9 +33,13 @@ let ReadinessService = class ReadinessService {
         let postgres = db ? "down" : "not_configured", migrations = db ? "down" : "not_configured", redis = queues.length ? "down" : "not_configured", workers = queues.length ? "down" : "not_configured", objectStorage = storage ? "down" : "not_configured";
         if (db)
             try {
-                const x = await bounded(db.execute(sql `select to_regclass('public.report_requests') reports,to_regclass('public.export_requests') exports`)), r = x[0];
+                const x = await bounded(db.execute(sql `select count(*)::int migration_count, max(created_at)::bigint latest_migration from drizzle.__drizzle_migrations`)), r = x[0];
                 postgres = "up";
-                migrations = r?.reports && r.exports ? "up" : "down";
+                migrations =
+                    r?.migration_count === expectedMigrationCount &&
+                        Number(r.latest_migration) === latestExpectedMigrationTimestamp
+                        ? "up"
+                        : "down";
             }
             catch {
                 postgres = migrations = "down";

@@ -4,6 +4,9 @@ import postgres from "postgres";
 import * as schema from "./schema/index.js";
 
 export * from "./schema/index.js";
+
+export const expectedMigrationCount = 12;
+export const latestExpectedMigrationTimestamp = 1_790_820_000_000;
 export { and, asc, count, desc, eq, ilike, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
 
 export function createDatabase(databaseUrl: string) {

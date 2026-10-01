@@ -4,11 +4,12 @@ trap 'echo "::error title=Restore rehearsal failed::line=$LINENO command=$BASH_C
 backup=${1:?backup directory required}
 [[ -f "$backup/postgres.dump" && -f "$backup/object-storage.tar.gz" && -f "$backup/SHA256SUMS" ]] || { echo 'Incomplete backup set.' >&2; exit 1; }
 (cd "$backup" && sha256sum -c SHA256SUMS)
-tar -tzf "$backup/object-storage.tar.gz" >/dev/null
+extract_dir=$(mktemp -d)
 user=${POSTGRES_USER:-nexus}; restore_db=nexus_restore_rehearsal
+trap 'rm -rf "$extract_dir"; docker compose exec -T postgres dropdb -U "${POSTGRES_USER:-nexus}" --if-exists nexus_restore_rehearsal >/dev/null 2>&1 || true' EXIT
+tar -xzf "$backup/object-storage.tar.gz" -C "$extract_dir"
 docker compose exec -T postgres dropdb -U "$user" --if-exists "$restore_db"
 docker compose exec -T postgres createdb -U "$user" "$restore_db"
-trap 'docker compose exec -T postgres dropdb -U "${POSTGRES_USER:-nexus}" --if-exists nexus_restore_rehearsal >/dev/null 2>&1 || true' EXIT
 docker compose exec -T postgres pg_restore -U "$user" -d "$restore_db" --no-owner <"$backup/postgres.dump"
 docker compose exec -T postgres psql -U "$user" -d "$restore_db" -v ON_ERROR_STOP=1 <<'SQL'
 DO $$ BEGIN
@@ -20,4 +21,18 @@ END $$;
 SELECT count(*) AS immutable_activity_events FROM activity_events;
 SELECT count(*) AS report_export_records FROM report_requests UNION ALL SELECT count(*) FROM export_requests;
 SQL
-echo 'Disposable PostgreSQL restore and object archive integrity checks passed.'
+bucket=${S3_BUCKET:-nexus-local}
+while IFS= read -r object_key; do
+  [[ -z "$object_key" ]] && continue
+  if ! grep -Fq "$bucket/$object_key/" "$backup/object-manifest.txt" && [[ ! -f "$extract_dir/$bucket/$object_key" ]]; then
+    echo "Restored database references missing object: $object_key" >&2
+    exit 1
+  fi
+done < <(docker compose exec -T postgres psql -U "$user" -d "$restore_db" -At -v ON_ERROR_STOP=1 <<'SQL'
+SELECT object_key FROM storage_objects WHERE status='AVAILABLE'
+UNION SELECT object_key FROM report_requests WHERE status='COMPLETED'
+UNION SELECT object_key FROM export_requests WHERE status='COMPLETED'
+ORDER BY 1;
+SQL
+)
+echo 'Disposable PostgreSQL restore and referenced object checks passed.'

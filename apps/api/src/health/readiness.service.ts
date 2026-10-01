@@ -1,4 +1,9 @@
-import { sql, type createDatabase } from "@nexus/database";
+import {
+  expectedMigrationCount,
+  latestExpectedMigrationTimestamp,
+  sql,
+  type createDatabase,
+} from "@nexus/database";
 import type { StorageProvider } from "@nexus/storage";
 import { Injectable } from "@nestjs/common";
 import type { Queue } from "bullmq";
@@ -42,12 +47,17 @@ export class ReadinessService {
       try {
         const x = await bounded(
             db.execute(
-              sql`select to_regclass('public.report_requests') reports,to_regclass('public.export_requests') exports`,
+              sql`select count(*)::int migration_count, max(created_at)::bigint latest_migration from drizzle.__drizzle_migrations`,
             ),
           ),
-          r = x[0] as { reports?: string | null; exports?: string | null } | undefined;
+          r = x[0] as
+            { migration_count?: number; latest_migration?: number | string | null } | undefined;
         postgres = "up";
-        migrations = r?.reports && r.exports ? "up" : "down";
+        migrations =
+          r?.migration_count === expectedMigrationCount &&
+          Number(r.latest_migration) === latestExpectedMigrationTimestamp
+            ? "up"
+            : "down";
       } catch {
         postgres = migrations = "down";
       }
