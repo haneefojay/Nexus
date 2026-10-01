@@ -72,11 +72,12 @@ async function main(): Promise<void> {
       objectKey = upload.objectKey;
     }
     const passwordHash = await hashPassword(password);
+    const literal = (value: string): string => `'${value.replaceAll("'", "''")}'`;
     await database.client.unsafe(
       `
       BEGIN;
       INSERT INTO users(id,email,name,email_verified,email_verified_at) VALUES('${ids.user}','demo.owner@nexus.invalid','Fictional Demo Owner',true,now()) ON CONFLICT(id) DO UPDATE SET name=excluded.name,email_verified=true;
-      INSERT INTO accounts(account_id,provider_id,user_id,password) VALUES('demo.owner@nexus.invalid','credential','${ids.user}',$1) ON CONFLICT(provider_id,account_id) DO UPDATE SET password=excluded.password;
+      INSERT INTO accounts(account_id,provider_id,user_id,password) VALUES('demo.owner@nexus.invalid','credential','${ids.user}',${literal(passwordHash)}) ON CONFLICT(provider_id,account_id) DO UPDATE SET password=excluded.password;
       INSERT INTO organizations(id,name,slug,timezone) VALUES('${ids.organization}','Fictional Operations — Demo','fictional-operations-demo','Africa/Lagos') ON CONFLICT(id) DO NOTHING;
       INSERT INTO memberships(user_id,organization_id,role,status) VALUES('${ids.user}','${ids.organization}','OWNER','ACTIVE') ON CONFLICT(user_id,organization_id) DO UPDATE SET role='OWNER',status='ACTIVE';
       INSERT INTO sites(id,organization_id,name,reference,type,status,address,location,created_by) VALUES('${ids.site}','${ids.organization}','Fictional Riverside Facility','DEMO-RIVER','OTHER','ACTIVE','Fictional address — not a real location',ST_SetSRID(ST_MakePoint(3.38,6.52),4326),'${ids.user}') ON CONFLICT(id) DO NOTHING;
@@ -89,13 +90,12 @@ async function main(): Promise<void> {
       INSERT INTO inspection_responses(id,organization_id,inspection_run_id,item_id,value,captured_by) VALUES('${ids.response}','${ids.organization}','${ids.run}','guard','false','${ids.user}') ON CONFLICT(id) DO NOTHING;
       INSERT INTO inspection_findings(id,organization_id,inspection_run_id,item_id,title,notes,severity,site_id,asset_id,status,created_by,detected_at) VALUES('${ids.finding}','${ids.organization}','${ids.run}','guard','Fictional loose guard','Demo-only condition','MEDIUM','${ids.site}','${ids.asset}','ACTION_REQUIRED','${ids.user}','2026-09-01T09:15:00Z') ON CONFLICT(id) DO NOTHING;
       INSERT INTO corrective_actions(id,organization_id,finding_id,title,description,assigned_to,priority,due_at,status,created_by) VALUES('${ids.action}','${ids.organization}','${ids.finding}','Secure fictional guard','Demo-only corrective action','${ids.user}','MEDIUM','2026-10-15T17:00:00Z','OPEN','${ids.user}') ON CONFLICT(id) DO NOTHING;
-      INSERT INTO evidence_upload_grants(id,organization_id,target_type,target_id,uploader_user_id,object_key,original_name,content_type,expected_size,expected_checksum,status,expires_at,finalized_at) VALUES('${ids.grant}','${ids.organization}','FINDING','${ids.finding}','${ids.user}',$2,'fictional-demo-evidence.pdf','application/pdf',$3,$4,'FINALIZED',now()+interval '1 day',now()) ON CONFLICT(id) DO NOTHING;
-      INSERT INTO storage_objects(id,organization_id,upload_grant_id,object_key,original_name,content_type,size,checksum,status) VALUES('${ids.object}','${ids.organization}','${ids.grant}',$2,'fictional-demo-evidence.pdf','application/pdf',$3,$4,'AVAILABLE') ON CONFLICT(id) DO NOTHING;
-      INSERT INTO evidence(id,organization_id,target_type,target_id,storage_object_id,uploader_user_id,captured_at,checksum,note) VALUES('${ids.evidence}','${ids.organization}','FINDING','${ids.finding}','${ids.object}','${ids.user}','2026-09-01T09:15:00Z',$4,'Fictional demo evidence') ON CONFLICT(id) DO NOTHING;
+      INSERT INTO evidence_upload_grants(id,organization_id,target_type,target_id,uploader_user_id,object_key,original_name,content_type,expected_size,expected_checksum,status,expires_at,finalized_at) VALUES('${ids.grant}','${ids.organization}','FINDING','${ids.finding}','${ids.user}',${literal(objectKey)},'fictional-demo-evidence.pdf','application/pdf',${body.length},${literal(checksum)},'FINALIZED',now()+interval '1 day',now()) ON CONFLICT(id) DO NOTHING;
+      INSERT INTO storage_objects(id,organization_id,upload_grant_id,object_key,original_name,content_type,size,checksum,status) VALUES('${ids.object}','${ids.organization}','${ids.grant}',${literal(objectKey)},'fictional-demo-evidence.pdf','application/pdf',${body.length},${literal(checksum)},'AVAILABLE') ON CONFLICT(id) DO NOTHING;
+      INSERT INTO evidence(id,organization_id,target_type,target_id,storage_object_id,uploader_user_id,captured_at,checksum,note) VALUES('${ids.evidence}','${ids.organization}','FINDING','${ids.finding}','${ids.object}','${ids.user}','2026-09-01T09:15:00Z',${literal(checksum)},'Fictional demo evidence') ON CONFLICT(id) DO NOTHING;
       INSERT INTO activity_events(organization_id,actor_user_id,action,resource_type,resource_id,metadata) SELECT '${ids.organization}','${ids.user}','demo.seeded','organization','${ids.organization}','{"fictional":true}' WHERE NOT EXISTS(SELECT 1 FROM activity_events WHERE organization_id='${ids.organization}' AND action='demo.seeded');
       COMMIT;
     `,
-      [passwordHash, objectKey, body.length, checksum],
     );
     console.info("Fictional demo seeded through real database and private object storage paths.");
   } finally {
@@ -103,4 +103,8 @@ async function main(): Promise<void> {
   }
 }
 
-void main();
+void main().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : "Unknown demo seed failure";
+  console.error(`::error title=Fictional demo seed failed::${message.replaceAll("\n", " ")}`);
+  process.exitCode = 1;
+});
