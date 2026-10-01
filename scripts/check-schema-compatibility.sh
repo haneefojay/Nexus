@@ -18,7 +18,7 @@ git worktree add --detach "$worktree" "$baseline" >/dev/null
     S3_ENDPOINT=http://localhost:9000 S3_REGION=us-east-1 S3_BUCKET=nexus-local S3_ACCESS_KEY=nexus \
     S3_SECRET_KEY=nexus_local_only BETTER_AUTH_SECRET=replace-with-at-least-32-random-characters \
     BETTER_AUTH_URL=http://localhost:3001 EMAIL_FROM=no-reply@nexus.local SMTP_HOST=localhost SMTP_PORT=1025 \
-    pnpm --filter @nexus/api exec tsx src/main.ts
+    exec ./node_modules/.bin/tsx apps/api/src/main.ts
 ) >/tmp/nexus-baseline-api.log 2>&1 &
 pid=$!
 for _ in $(seq 1 60); do
@@ -30,6 +30,11 @@ for _ in $(seq 1 60); do
     set -e
     [[ "$baseline_exit" -eq 0 || "$baseline_exit" -eq 143 ]]
     pid=""
+    for _ in $(seq 1 20); do
+      if ! curl --silent --max-time 1 http://localhost:3001/health >/dev/null; then break; fi
+      sleep .25
+    done
+    ! curl --silent --max-time 1 http://localhost:3001/health >/dev/null
     echo "Baseline $baseline started against the RC schema; forward-fix restart may proceed."
     exit 0
   fi
