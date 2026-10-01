@@ -10,7 +10,9 @@ const minute = 60000;
 export const ratePolicies: readonly Policy[] = [
   {
     pattern: /^\/v1\/auth\/(?:sign-in|sign-up|forget-password|reset-password)/,
-    limit: 10,
+    // Better Auth applies the authoritative database-backed 3–5 request limits per
+    // endpoint. This broad process guard is defense in depth during rolling hand-offs.
+    limit: 100,
     windowMs: minute,
   },
   { pattern: /^\/v1\/invitations/, limit: 20, windowMs: minute },
