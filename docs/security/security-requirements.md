@@ -14,3 +14,7 @@
 | SEC-010 | Logs/traces redact credentials, tokens, sensitive payloads, and URLs          | observability tests/review     |
 | SEC-011 | Offline replay/idempotency and current authorization are enforced             | offline security E2E           |
 | SEC-012 | Rate and workload limits protect expensive search/map/import/report paths     | load/abuse tests               |
+
+## Phase 6 security gate
+
+The RC requires dependency audit at high severity, repository secret scan, migration immutability, existing tenant/role/storage/offline suites, private-object restore integrity, and a production-mode fault injection proving a sentinel in query and authorization inputs is absent from API logs. Container-local MinIO is development/rehearsal infrastructure only; production requires an operator-approved maintained S3-compatible provider.

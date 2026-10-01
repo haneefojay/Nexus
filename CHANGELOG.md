@@ -83,3 +83,20 @@ All notable changes to this project will be documented here.
 ### Deprecated
 
 - Unsupported live-telemetry and predictive-maintenance positioning for the MVP.
+
+## 1.0.0-rc.1 — 2026-10-01
+
+### Added
+
+- Release-candidate manifest and digests, migration-history and exact-ledger readiness gates, deterministic demo seed/reseed/reset checks, referenced-object restore validation, real-stack report/export/offline/accessibility coverage, log-redaction fault injection, and schema-compatible rollback/forward-fix rehearsal.
+- Buildable web, API, and worker containers with worker → API → web startup, rolling API replacement, and verified SIGTERM draining.
+
+### Changed
+
+- Workspace package exports now distinguish TypeScript source tooling from compiled production JavaScript; OpenAPI derives the RC package version.
+- API readiness requires all 12 expected migrations through `0011_phase_five_dashboard_index.sql`.
+
+### Security
+
+- API request URLs are redacted at the logger boundary; CI proves query and authorization sentinels do not reach logs.
+- Migration history, dependency audit, secret scanning, tenant/domain gates, and private artifact recovery remain blocking release checks.
