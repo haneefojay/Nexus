@@ -102,9 +102,7 @@ export function registerHardening(
   );
 }
 function reject(r: FastifyReply, s: number, c: string, id: string) {
-  return r
-    .status(s)
-    .send({
-      error: { code: c, message: "The request could not be completed", details: {}, requestId: id },
-    });
+  return r.status(s).send({
+    error: { code: c, message: "The request could not be completed", details: {}, requestId: id },
+  });
 }
