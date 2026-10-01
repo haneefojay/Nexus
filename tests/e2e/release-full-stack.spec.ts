@@ -94,6 +94,8 @@ test("real RC signs in, produces truthful artifacts, works offline, and passes a
   await page.getByRole("button", { name: "Prepare offline" }).click();
   await expect(page.getByText("Assignments are available offline on this device.")).toBeVisible();
   await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.reload();
+  await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
   await page.context().setOffline(true);
   await page.evaluate(() => window.dispatchEvent(new Event("offline")));
   await expect(page.getByText("Offline", { exact: true })).toBeVisible();
