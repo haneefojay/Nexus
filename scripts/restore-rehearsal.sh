@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -eEuo pipefail
+trap 'echo "::error title=Restore rehearsal failed::line=$LINENO command=$BASH_COMMAND" >&2' ERR
 backup=${1:?backup directory required}
 [[ -f "$backup/postgres.dump" && -f "$backup/object-storage.tar.gz" && -f "$backup/SHA256SUMS" ]] || { echo 'Incomplete backup set.' >&2; exit 1; }
 (cd "$backup" && sha256sum -c SHA256SUMS)
