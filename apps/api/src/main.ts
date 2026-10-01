@@ -110,7 +110,6 @@ async function bootstrap(): Promise<void> {
   });
   registerAuthRoutes(fastify, auth, environment.BETTER_AUTH_URL);
 
-  app.enableShutdownHooks();
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -143,8 +142,25 @@ async function bootstrap(): Promise<void> {
       database.close(),
     ]);
   };
-  process.once("SIGINT", () => void closeResources());
-  process.once("SIGTERM", () => void closeResources());
+  let shutdownPromise: Promise<void> | undefined;
+  const shutdown = (signal: string): Promise<void> => {
+    shutdownPromise ??= (async () => {
+      logger.log("info", "api.shutdown", { signal });
+      try {
+        await app.close();
+        await closeResources();
+      } catch (error) {
+        logger.log("error", "api.shutdown.failed", {
+          signal,
+          message: error instanceof Error ? error.message : "Unknown shutdown error",
+        });
+        process.exitCode = 1;
+      }
+    })();
+    return shutdownPromise;
+  };
+  process.once("SIGINT", () => void shutdown("SIGINT"));
+  process.once("SIGTERM", () => void shutdown("SIGTERM"));
 
   try {
     await app.listen(environment.API_PORT, "0.0.0.0");

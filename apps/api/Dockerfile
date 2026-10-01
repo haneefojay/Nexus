@@ -1,19 +1,14 @@
-FROM node:24-alpine AS base
+FROM node:24-alpine AS build
 RUN corepack enable
 WORKDIR /app
-
-FROM base AS dependencies
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.base.json ./
-COPY apps/api/package.json apps/api/package.json
-RUN pnpm install --frozen-lockfile --filter @nexus/api...
-
-FROM dependencies AS build
-COPY apps/api apps/api
-RUN pnpm --filter @nexus/api build
+COPY . .
+RUN pnpm install --frozen-lockfile \
+  && pnpm --filter @nexus/api... build
 
 FROM node:24-alpine AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
-COPY --from=build /app /app
+COPY --from=build --chown=node:node /app /app
 USER node
+EXPOSE 3001
 CMD ["node", "apps/api/dist/main.js"]
