@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
 release_sha=${GITHUB_SHA:-$(git rev-parse HEAD)}
 artifact_dir=${RELEASE_ARTIFACT_DIR:-release-artifacts}
@@ -11,6 +11,15 @@ mkdir -p "$artifact_dir"
 cleanup() {
   docker rm -f "$web_name" "$api_name" "$worker_name" >/dev/null 2>&1 || true
 }
+on_error() {
+  local code=$? line=$1 command=$2
+  echo "::error title=Release container rehearsal failed::line=$line command=$command exit=$code" >&2
+  for container in "$web_name" "$api_name" "$worker_name"; do
+    docker logs "$container" >&2 2>/dev/null || true
+  done
+  return "$code"
+}
+trap 'on_error "$LINENO" "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 
 for service in worker api web; do
@@ -43,7 +52,7 @@ wait_for_log() {
 }
 
 start_api() {
-  docker run -d --name "$api_name" --network host --env-file .env "nexus-api:$release_sha" >/dev/null
+  docker run -d --name "$api_name" --network host --env-file .env -e NODE_ENV=production "nexus-api:$release_sha" >/dev/null
   for _ in $(seq 1 60); do
     curl --fail --silent http://localhost:3001/ready >/dev/null && return 0
     sleep 1
@@ -53,10 +62,10 @@ start_api() {
 }
 
 # Migrations and seed run before the worker -> API -> web startup sequence.
-docker run -d --name "$worker_name" --network host --env-file .env "nexus-worker:$release_sha" >/dev/null
+docker run -d --name "$worker_name" --network host --env-file .env -e NODE_ENV=production "nexus-worker:$release_sha" >/dev/null
 wait_for_log "$worker_name" 'worker.ready'
 start_api
-docker run -d --name "$web_name" --network host --env-file .env "nexus-web:$release_sha" >/dev/null
+docker run -d --name "$web_name" --network host --env-file .env -e NODE_ENV=production "nexus-web:$release_sha" >/dev/null
 web_ready=false
 for _ in $(seq 1 60); do
   if curl --fail --silent http://localhost:3000/signin >/dev/null; then
@@ -67,7 +76,7 @@ for _ in $(seq 1 60); do
 done
 if [[ "$web_ready" != true ]]; then
   docker logs "$web_name" >&2 || true
-  exit 1
+  false
 fi
 
 # Replace the API while its dependencies and worker stay available.
@@ -83,7 +92,7 @@ for container in "$web_name" "$api_name" "$worker_name"; do
   if [[ "$exit_code" != 0 ]]; then
     docker logs "$container" >&2 || true
     echo "$container exited with $exit_code after SIGTERM" >&2
-    exit 1
+    false
   fi
 done
 
