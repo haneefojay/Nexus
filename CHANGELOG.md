@@ -1,5 +1,14 @@
 # Changelog
 
+## Phase 5 — Reporting & Hardening
+
+- Added immutable asynchronous inspection PDF reports and operational CSV exports with private storage, tenant authorization, deduplication, retries, expiry, cleanup, and real-state UI.
+- Replaced remaining dashboard ambiguity with authoritative metric definitions and an indexed tenant/site coverage query.
+- Added WCAG 2.2 AA axe gates and resolved blocking control-name and contrast defects across desktop/mobile public and authenticated flows.
+- Added redacting structured logs, W3C request/job correlation, safe error capture, dependency/worker readiness, security headers, origin/body controls, and expensive-route limits.
+- Added authenticated CRUD, 10k-asset PostGIS/search, 100k-import, report/export performance gates; PostgreSQL/object backup and disposable restore rehearsal; deployment/rollback runbooks; and a deterministic real-service fictional demo.
+- Preserved all Phase 1–4 tenant, history, evidence, notification, PWA, offline, and exactly-once synchronization contracts.
+
 ## Phase 4 — Offline Field
 
 - Added installable field PWA, Dexie persistence, safe service-worker caching and upgrades, mobile
