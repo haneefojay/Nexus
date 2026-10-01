@@ -86,14 +86,16 @@ docker rm "$api_name" >/dev/null
 start_api
 
 # Docker stop sends SIGTERM. Each candidate must drain and exit cleanly.
+shutdown_failures=0
 for container in "$web_name" "$api_name" "$worker_name"; do
   docker stop --time 30 "$container" >/dev/null
   exit_code=$(docker inspect --format '{{.State.ExitCode}}' "$container")
   if [[ "$exit_code" != 0 ]]; then
     docker logs "$container" >&2 || true
-    echo "$container exited with $exit_code after SIGTERM" >&2
-    false
+    echo "::error title=Container SIGTERM failed::$container exited with $exit_code" >&2
+    shutdown_failures=$((shutdown_failures + 1))
   fi
 done
+[[ "$shutdown_failures" -eq 0 ]]
 
 echo "Release container startup, readiness, replacement, and SIGTERM checks passed."
