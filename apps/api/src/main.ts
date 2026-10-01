@@ -8,6 +8,7 @@ import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { FastifyAdapter, NestFastifyApplication } from "@nestjs/platform-fastify";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import apiPackage from "../package.json" with { type: "json" };
 import {
   exportQueueName,
   importQueueName,
@@ -121,7 +122,7 @@ async function bootstrap(): Promise<void> {
   const openApiConfig = new DocumentBuilder()
     .setTitle("NEXUS API")
     .setDescription("NEXUS operational API contract")
-    .setVersion("0.1.0")
+    .setVersion(apiPackage.version)
     .addCookieAuth("nexus.session_token")
     .build();
 

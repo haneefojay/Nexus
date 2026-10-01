@@ -63,7 +63,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-pnpm --filter @nexus/api exec tsx src/main.ts >"$api_log" 2>&1 &
+pnpm --filter @nexus/api exec tsx --conditions=nexus-source src/main.ts >"$api_log" 2>&1 &
 api_pid=$!
 for _ in $(seq 1 40); do
   curl --fail --silent http://localhost:3001/health >/dev/null && break
@@ -121,7 +121,7 @@ plan=$(curl --fail --silent --cookie "$cookie_jar" -H "x-organization-id: $organ
 plan_id=$(jq -er '.data.id' <<<"$plan")
 
 checkpoint "bounded worker generation"
-pnpm --filter @nexus/worker exec tsx src/main.ts >"$worker_log" 2>&1 &
+pnpm --filter @nexus/worker exec tsx --conditions=nexus-source src/main.ts >"$worker_log" 2>&1 &
 worker_pid=$!
 run_id=""
 for _ in $(seq 1 40); do

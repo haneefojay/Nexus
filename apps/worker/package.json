@@ -1,16 +1,16 @@
 {
   "name": "@nexus/worker",
-  "version": "0.1.0",
+  "version": "1.0.0-rc.1",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/main.ts",
+    "dev": "tsx watch --conditions=nexus-source src/main.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
     "lint": "eslint src --max-warnings 0",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
-    "benchmark:phase5": "tsx src/performance-benchmark.ts"
+    "benchmark:phase5": "tsx --conditions=nexus-source src/performance-benchmark.ts"
   },
   "dependencies": {
     "@nexus/config": "workspace:*",

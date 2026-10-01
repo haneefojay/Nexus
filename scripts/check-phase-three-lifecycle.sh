@@ -31,7 +31,7 @@ cleanup() {
 trap cleanup EXIT
 trap 'printf "line=%s\napi=%s\n" "$LINENO" "$(tail -n 30 "$api_log" | tr "\n" " " | tail -c 3000)" >/tmp/phase-three-lifecycle-failure.txt; echo "Phase 3 lifecycle failed at line $LINENO"; tail -n 80 "$api_log"' ERR
 
-pnpm --filter @nexus/api exec tsx src/main.ts >"$api_log" 2>&1 &
+pnpm --filter @nexus/api exec tsx --conditions=nexus-source src/main.ts >"$api_log" 2>&1 &
 api_pid=$!
 for _ in $(seq 1 50); do
   curl --fail --silent http://localhost:3001/health >/dev/null && break

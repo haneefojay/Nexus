@@ -7,7 +7,10 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { Controller, Get, ServiceUnavailableException } from "@nestjs/common";
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+import { Controller, Get, Inject, ServiceUnavailableException } from "@nestjs/common";
 import { ApiOkResponse, ApiServiceUnavailableResponse, ApiTags } from "@nestjs/swagger";
 import { ReadinessService } from "./readiness.service.js";
 let HealthController = class HealthController {
@@ -43,6 +46,7 @@ __decorate([
 HealthController = __decorate([
     ApiTags("system"),
     Controller(),
+    __param(0, Inject(ReadinessService)),
     __metadata("design:paramtypes", [ReadinessService])
 ], HealthController);
 export { HealthController };

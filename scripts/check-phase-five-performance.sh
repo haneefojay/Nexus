@@ -8,7 +8,7 @@ export BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-phase-five-performance-secret-32
 export EMAIL_FROM=no-reply@nexus.local SMTP_HOST=localhost SMTP_PORT=1025
 api_pid=""
 if ! curl --fail --silent --max-time 2 http://localhost:3001/health >/dev/null; then
-  pnpm --filter @nexus/api exec tsx src/main.ts >/tmp/phase-five-performance-api.log 2>&1 & api_pid=$!
+  pnpm --filter @nexus/api exec tsx --conditions=nexus-source src/main.ts >/tmp/phase-five-performance-api.log 2>&1 & api_pid=$!
   for _ in $(seq 1 40); do curl --fail --silent http://localhost:3001/health >/dev/null && break; sleep .25; done
 fi
 cleanup_api() { [[ -z "$api_pid" ]] || kill "$api_pid" 2>/dev/null || true; rm -f /tmp/phase-five-perf-cookie /tmp/phase-five-perf-times; }

@@ -4,49 +4,68 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+import { sql } from "@nexus/database";
 import { Injectable } from "@nestjs/common";
-import { createConnection } from "node:net";
-function endpointFromUrl(value, fallbackPort) {
-    if (!value)
-        return null;
-    const url = new URL(value);
-    return {
-        host: url.hostname,
-        port: url.port ? Number.parseInt(url.port, 10) : fallbackPort,
-    };
-}
-async function canConnect(endpoint, timeoutMs = 1_500) {
-    if (!endpoint)
-        return "not_configured";
-    return new Promise((resolve) => {
-        const socket = createConnection(endpoint);
-        const finish = (status) => {
-            socket.removeAllListeners();
-            socket.destroy();
-            resolve(status);
-        };
-        socket.setTimeout(timeoutMs);
-        socket.once("connect", () => finish("up"));
-        socket.once("timeout", () => finish("down"));
-        socket.once("error", () => finish("down"));
-    });
+async function bounded(p, ms = 1500) {
+    let t;
+    try {
+        return await Promise.race([
+            p,
+            new Promise((_, r) => {
+                t = setTimeout(() => r(new Error("TIMEOUT")), ms);
+            }),
+        ]);
+    }
+    finally {
+        if (t)
+            clearTimeout(t);
+    }
 }
 let ReadinessService = class ReadinessService {
+    constructor(d = {}) {
+        this.d = d;
+    }
     async check() {
-        const [postgres, redis, objectStorage] = await Promise.all([
-            canConnect(endpointFromUrl(process.env.DATABASE_URL, 5432)),
-            canConnect(endpointFromUrl(process.env.REDIS_URL, 6379)),
-            canConnect(endpointFromUrl(process.env.S3_ENDPOINT, 443)),
-        ]);
-        const dependencies = { postgres, redis, objectStorage };
-        const status = Object.values(dependencies).every((value) => value === "up")
-            ? "ready"
-            : "not_ready";
-        return { status, dependencies };
+        const { db, queues = [], storage } = this.d;
+        let postgres = db ? "down" : "not_configured", migrations = db ? "down" : "not_configured", redis = queues.length ? "down" : "not_configured", workers = queues.length ? "down" : "not_configured", objectStorage = storage ? "down" : "not_configured";
+        if (db)
+            try {
+                const x = await bounded(db.execute(sql `select to_regclass('public.report_requests') reports,to_regclass('public.export_requests') exports`)), r = x[0];
+                postgres = "up";
+                migrations = r?.reports && r.exports ? "up" : "down";
+            }
+            catch {
+                postgres = migrations = "down";
+            }
+        if (queues.length)
+            try {
+                const x = await bounded(Promise.all(queues.map(async (q) => (await q.getWorkers()).length)));
+                redis = "up";
+                workers = x.some((n) => n > 0) ? "up" : "down";
+            }
+            catch {
+                redis = workers = "down";
+            }
+        if (storage)
+            try {
+                objectStorage = (await bounded(storage.checkHealth())) ? "up" : "down";
+            }
+            catch {
+                objectStorage = "down";
+            }
+        const dependencies = { postgres, redis, objectStorage, migrations, workers };
+        return {
+            status: Object.values(dependencies).every((v) => v === "up") ? "ready" : "not_ready",
+            dependencies,
+        };
     }
 };
 ReadinessService = __decorate([
-    Injectable()
+    Injectable(),
+    __metadata("design:paramtypes", [Object])
 ], ReadinessService);
 export { ReadinessService };
 //# sourceMappingURL=readiness.service.js.map
