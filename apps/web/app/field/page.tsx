@@ -14,7 +14,7 @@ import {
   WifiOff,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 import { api } from "@/lib/api";
 import { fieldDb, type CachedAssignment, type CachedFieldContext } from "@/lib/field-db";
@@ -31,9 +31,20 @@ import {
 
 type Organization = { id: string; name: string; role: string };
 
+function subscribeToConnectivity(onStoreChange: () => void): () => void {
+  window.addEventListener("online", onStoreChange);
+  window.addEventListener("offline", onStoreChange);
+  return () => {
+    window.removeEventListener("online", onStoreChange);
+    window.removeEventListener("offline", onStoreChange);
+  };
+}
+
 export default function FieldPage() {
-  const [online, setOnline] = useState(() =>
-    typeof navigator === "undefined" ? true : navigator.onLine,
+  const online = useSyncExternalStore(
+    subscribeToConnectivity,
+    () => navigator.onLine,
+    () => true,
   );
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [organizationId, setOrganizationId] = useState("");
@@ -64,10 +75,6 @@ export default function FieldPage() {
     assignments[0];
 
   useEffect(() => {
-    const handleOnline = () => setOnline(true);
-    const handleOffline = () => setOnline(false);
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
     void fieldDb.contexts
       .where("state")
       .equals("ACTIVE")
@@ -80,10 +87,6 @@ export default function FieldPage() {
           setOrganizationId(latest.organizationId);
         }
       });
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
   }, []);
 
   useEffect(() => {
@@ -345,8 +348,8 @@ function InspectionExecution({
         {completed} of {items.length} responses complete
       </p>
 
-      {assignment.snapshot.template.sections.map((section) => (
-        <fieldset disabled={locked} key={section.id}>
+      {assignment.snapshot.template.sections.map((section, sectionIndex) => (
+        <fieldset disabled={locked} key={section.id ?? `${sectionIndex}-${section.title}`}>
           <legend>{section.title}</legend>
           {section.instructions && <p>{section.instructions}</p>}
           {section.items.map((item) => (

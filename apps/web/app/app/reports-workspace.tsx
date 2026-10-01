@@ -161,7 +161,12 @@ export function ReportsWorkspace({ organizationId }: { organizationId: string })
               {busy ? "Working…" : "Request PDF"}
             </button>
           </div>
-          <div className="data-table" aria-live="polite">
+          <div
+            aria-label="Generated inspection reports"
+            aria-live="polite"
+            className="data-table"
+            tabIndex={0}
+          >
             <table>
               <thead>
                 <tr>
@@ -315,7 +320,12 @@ function ExportsPanel({ organizationId }: { organizationId: string }) {
           {busy ? "Working…" : "Request CSV"}
         </button>
       </div>
-      <div className="data-table" aria-live="polite">
+      <div
+        aria-label="Generated operational exports"
+        aria-live="polite"
+        className="data-table"
+        tabIndex={0}
+      >
         <table>
           <thead>
             <tr>

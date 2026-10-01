@@ -29,11 +29,11 @@ export async function api<T>(
   const payload = (await response.json().catch(() => ({}))) as {
     message?: string;
     code?: string;
-    error?: { code?: string };
+    error?: { code?: string; message?: string };
   };
   if (!response.ok)
     throw new ApiClientError(
-      payload.message ?? "The request could not be completed",
+      payload.message ?? payload.error?.message ?? "The request could not be completed",
       response.status,
       payload.code ?? payload.error?.code,
     );

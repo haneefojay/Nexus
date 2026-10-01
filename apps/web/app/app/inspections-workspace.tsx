@@ -39,7 +39,7 @@ type RunDetail = Run & {
   notes: string | null;
   template: {
     sections: {
-      id: string;
+      id?: string;
       title: string;
       instructions?: string;
       items: {
@@ -204,7 +204,7 @@ function InspectionDashboard({ dashboard }: { dashboard: Dashboard }) {
         <Metric label="Overdue" value={dashboard.summary.overdue} alert />
         <Metric label="Completed · 30 days" value={dashboard.summary.completed_recently} />
       </div>
-      <div className="data-table">
+      <div aria-label="Inspection coverage by site" className="data-table" tabIndex={0}>
         <table>
           <thead>
             <tr>
@@ -680,8 +680,8 @@ function RunExecution({
             void submit();
           }}
         >
-          {run.template.sections.map((section) => (
-            <fieldset key={section.id}>
+          {run.template.sections.map((section, sectionIndex) => (
+            <fieldset key={section.id ?? `${sectionIndex}-${section.title}`}>
               <legend>{section.title}</legend>
               {section.instructions && <p>{section.instructions}</p>}
               {section.items.map((item) => (
