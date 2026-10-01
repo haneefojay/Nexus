@@ -132,12 +132,18 @@ const inspectionWorker = new Worker<GenerateInspectionRunsJob>(
   async (job) => {
     if (job.name !== generateInspectionRunsJobName)
       throw new Error(`Unsupported inspection job: ${job.name}`);
-    await generateInspectionRuns(database.db, job.data);
+    // Repeatable jobs retain their original payload. Use the actual execution
+    // instant so long-lived workers behave consistently in every timezone.
+    const executedAt = new Date();
+    await generateInspectionRuns(database.db, {
+      ...job.data,
+      requestedAt: executedAt.toISOString(),
+    });
     await dispatchInspectionNotifications(
       database.db,
       transporter,
       environment.EMAIL_FROM,
-      new Date(job.data.requestedAt),
+      executedAt,
     );
   },
   { connection, concurrency: 2 },
@@ -145,12 +151,15 @@ const inspectionWorker = new Worker<GenerateInspectionRunsJob>(
 const systemWorker = new Worker<CleanupEvidenceUploadsJob | CleanupArtifactsJob>(
   systemQueueName,
   async (job) => {
+    // Expiration timestamps are UTC instants. Compare them with the actual
+    // execution time, not the time the repeat job was first registered.
+    const executedAt = new Date();
     if (job.name === cleanupEvidenceUploadsJobName) {
-      await cleanupExpiredEvidenceUploads(database.db, storage, new Date(job.data.requestedAt));
+      await cleanupExpiredEvidenceUploads(database.db, storage, executedAt);
       return;
     }
     if (job.name === cleanupArtifactsJobName) {
-      await cleanupExpiredArtifacts(database.db, storage, new Date(job.data.requestedAt));
+      await cleanupExpiredArtifacts(database.db, storage, executedAt);
       return;
     }
     throw new Error(`Unsupported system job: ${job.name}`);
