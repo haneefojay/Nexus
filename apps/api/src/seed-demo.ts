@@ -76,7 +76,7 @@ async function main(): Promise<void> {
     await database.client.begin(async (transaction) => {
       await transaction.unsafe(`
       INSERT INTO users(id,email,name,email_verified,email_verified_at) VALUES('${ids.user}','demo.owner@nexus.invalid','Fictional Demo Owner',true,now()) ON CONFLICT(id) DO UPDATE SET name=excluded.name,email_verified=true;
-      INSERT INTO accounts(account_id,provider_id,user_id,password) VALUES('demo.owner@nexus.invalid','credential','${ids.user}',${literal(passwordHash)}) ON CONFLICT(provider_id,account_id) DO UPDATE SET password=excluded.password;
+      INSERT INTO accounts(account_id,provider_id,user_id,password) VALUES('${ids.user}','credential','${ids.user}',${literal(passwordHash)}) ON CONFLICT(provider_id,account_id) DO UPDATE SET password=excluded.password;
       INSERT INTO organizations(id,name,slug,timezone) VALUES('${ids.organization}','Fictional Operations — Demo','fictional-operations-demo','Africa/Lagos') ON CONFLICT(id) DO NOTHING;
       INSERT INTO memberships(user_id,organization_id,role,status) VALUES('${ids.user}','${ids.organization}','OWNER','ACTIVE') ON CONFLICT(user_id,organization_id) DO UPDATE SET role='OWNER',status='ACTIVE';
       INSERT INTO sites(id,organization_id,name,reference,type,status,address,location,created_by) VALUES('${ids.site}','${ids.organization}','Fictional Riverside Facility','DEMO-RIVER','OTHER','ACTIVE','Fictional address — not a real location',ST_SetSRID(ST_MakePoint(3.38,6.52),4326),'${ids.user}') ON CONFLICT(id) DO NOTHING;
