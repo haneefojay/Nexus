@@ -13,17 +13,23 @@ if ! curl --fail --silent --max-time 2 http://localhost:3001/health >/dev/null; 
 fi
 cleanup_api() { [[ -z "$api_pid" ]] || kill "$api_pid" 2>/dev/null || true; rm -f /tmp/phase-five-perf-cookie /tmp/phase-five-perf-times; }
 trap cleanup_api EXIT
-curl --fail --silent --cookie-jar /tmp/phase-five-perf-cookie -H 'content-type: application/json' --data '{"email":"demo.owner@nexus.invalid","password":"fictional-local-password"}' http://localhost:3001/v1/auth/sign-in/email >/dev/null
+auth_status=$(curl --silent --output /tmp/phase-five-perf-auth --write-out '%{http_code}' --cookie-jar /tmp/phase-five-perf-cookie -H 'x-forwarded-for: 127.0.0.55' -H 'content-type: application/json' --data '{"email":"demo.owner@nexus.invalid","password":"fictional-local-password"}' http://localhost:3001/v1/auth/sign-in/email)
+if [[ "$auth_status" != 200 ]]; then echo "::error title=API performance authentication failed::status=$auth_status" >&2; exit 1; fi
 : >/tmp/phase-five-perf-times
 for i in $(seq 1 20); do
-  curl --fail --silent --output /dev/null --cookie /tmp/phase-five-perf-cookie -H 'x-organization-id: 0199abcd-0000-7000-8000-000000000002' -H 'content-type: application/json' --data "{\"name\":\"Fictional performance site $i\",\"reference\":\"PERF-API-$i\",\"type\":\"OTHER\",\"status\":\"ACTIVE\"}" --write-out '%{time_total}\n' http://localhost:3001/v1/sites >>/tmp/phase-five-perf-times
+  result=$(curl --silent --output /tmp/phase-five-perf-response --cookie /tmp/phase-five-perf-cookie -H 'x-forwarded-for: 127.0.0.55' -H 'x-organization-id: 0199abcd-0000-7000-8000-000000000002' -H 'content-type: application/json' --data "{\"name\":\"Fictional performance site $i\",\"reference\":\"PERF-API-$i\",\"type\":\"OTHER\",\"status\":\"ACTIVE\"}" --write-out '%{http_code} %{time_total}' http://localhost:3001/v1/sites)
+  read -r status duration <<<"$result"
+  if [[ "$status" != 200 && "$status" != 201 ]]; then echo "::error title=API CRUD performance request failed::iteration=$i status=$status" >&2; exit 1; fi
+  echo "$duration" >>/tmp/phase-five-perf-times
 done
 python3 - <<'PY2'
 from pathlib import Path
 values=sorted(float(x) for x in Path('/tmp/phase-five-perf-times').read_text().split())
 p95=values[max(0, int(len(values)*.95)-1)]
 print(f'api-create-site p95={p95*1000:.1f}ms samples={len(values)} limit=400ms')
-if p95 >= .4: raise SystemExit('normal API CRUD p95 exceeded 400ms')
+if p95 >= .4:
+ print(f'::error title=API CRUD latency exceeded::p95={p95*1000:.1f}ms limit=400ms')
+ raise SystemExit(1)
 PY2
 
 psql=(docker compose exec -T postgres psql -U "${POSTGRES_USER:-nexus}" -d "${POSTGRES_DB:-nexus}" -v ON_ERROR_STOP=1)
