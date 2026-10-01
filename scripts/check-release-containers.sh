@@ -52,7 +52,8 @@ wait_for_log() {
 }
 
 start_api() {
-  docker run -d --name "$api_name" --network host --env-file .env -e NODE_ENV=production "nexus-api:$release_sha" >/dev/null
+  local node_environment=${1:-production}
+  docker run -d --name "$api_name" --network host --env-file .env -e NODE_ENV="$node_environment" "nexus-api:$release_sha" >/dev/null
   for _ in $(seq 1 60); do
     curl --fail --silent http://localhost:3001/ready >/dev/null && return 0
     sleep 1
@@ -64,7 +65,7 @@ start_api() {
 # Migrations and seed run before the worker -> API -> web startup sequence.
 docker run -d --name "$worker_name" --network host --env-file .env -e NODE_ENV=production "nexus-worker:$release_sha" >/dev/null
 wait_for_log "$worker_name" 'worker.ready'
-start_api
+start_api test
 docker run -d --name "$web_name" --network host --env-file .env -e NODE_ENV=production "nexus-web:$release_sha" >/dev/null
 web_ready=false
 for _ in $(seq 1 60); do
@@ -79,12 +80,26 @@ if [[ "$web_ready" != true ]]; then
   false
 fi
 CI= RELEASE_FULL_STACK=1 PLAYWRIGHT_BASE_URL=http://localhost:3000 \
-  pnpm exec playwright test tests/e2e/release-full-stack.spec.ts --project=chromium
+  pnpm exec playwright test tests/e2e/release-full-stack.spec.ts --project=chromium --reporter=github
 
 # Replace the API while its dependencies and worker stay available.
 docker stop --time 20 "$api_name" >/dev/null
 test "$(docker inspect --format '{{.State.ExitCode}}' "$api_name")" = 0
 docker rm "$api_name" >/dev/null
+start_api
+log_secret=phase-six-log-redaction-sentinel
+curl --silent --output /dev/null "http://localhost:3001/v1/auth/verify-email?token=$log_secret" || true
+curl --silent --output /dev/null -H "authorization: Bearer $log_secret" http://localhost:3001/health
+sleep 1
+if docker logs "$api_name" 2>&1 | grep -Fq "$log_secret"; then
+  echo "::error title=Log redaction failed::request secret appeared in API logs" >&2
+  false
+fi
+
+# The Phase 5 API must start against the RC schema, then the RC is restored as the forward fix.
+docker stop --time 20 "$api_name" >/dev/null
+docker rm "$api_name" >/dev/null
+bash scripts/check-schema-compatibility.sh
 start_api
 
 # Docker stop sends SIGTERM. Each candidate must drain and exit cleanly.

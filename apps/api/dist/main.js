@@ -57,6 +57,7 @@ async function bootstrap() {
             level: environment.NODE_ENV === "production" ? "info" : "debug",
             redact: {
                 paths: [
+                    "req.url",
                     "req.headers.authorization",
                     "req.headers.cookie",
                     "res.headers.set-cookie",
