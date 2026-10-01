@@ -245,7 +245,7 @@ export class InspectionsService {
       templateVersionId: input.templateVersionId,
       targetType: input.targetType,
     });
-    await this.enqueueGeneration(created!.id);
+    await this.enqueueGeneration(created!.id, context.requestId);
     return created!;
   }
 
@@ -282,7 +282,7 @@ export class InspectionsService {
       id,
       {},
     );
-    if (active) await this.enqueueGeneration(id);
+    if (active) await this.enqueueGeneration(id, context.requestId);
     return updated;
   }
 
@@ -686,10 +686,10 @@ export class InspectionsService {
     if (!membership) throw new BadRequestException("Assigned user is not an active member");
   }
 
-  private async enqueueGeneration(planId: string) {
+  private async enqueueGeneration(planId: string, correlationId: string) {
     await this.queue.add(
       "generate-inspection-runs",
-      { planId, horizonDays: 35, requestedAt: new Date().toISOString() },
+      { correlationId, planId, horizonDays: 35, requestedAt: new Date().toISOString() },
       { jobId: `plan-${planId}`, attempts: 5, backoff: { type: "exponential", delay: 1_000 } },
     );
   }

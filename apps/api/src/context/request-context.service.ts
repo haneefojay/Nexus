@@ -7,6 +7,7 @@ import type { FastifyRequest } from "fastify";
 import { AUTH_TOKEN, DATABASE_TOKEN } from "../tokens.js";
 
 export interface ActorContext {
+  requestId: string;
   userId: string;
   email: string;
   name: string;
@@ -48,6 +49,7 @@ export class RequestContextService {
     if (!user?.active) throw new UnauthorizedException("The account is unavailable");
 
     return {
+      requestId: request.id,
       userId: result.user.id,
       email: result.user.email,
       name: result.user.name,

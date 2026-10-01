@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import type { AuthEmail, AuthEmailDispatcher } from "@nexus/auth";
 import { authEmailJobName, emailQueueName, type AuthEmailJob } from "@nexus/contracts";
 import { Queue } from "bullmq";
@@ -20,7 +22,7 @@ export class QueuedAuthEmailDispatcher implements AuthEmailDispatcher {
   }
 
   async enqueue(message: AuthEmail): Promise<void> {
-    await this.queue.add(authEmailJobName, message);
+    await this.queue.add(authEmailJobName, { ...message, correlationId: randomUUID() });
   }
 
   async close(): Promise<void> {

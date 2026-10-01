@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { parseServerEnvironment } from "@nexus/config";
 import {
   authEmailJobName,
@@ -204,7 +206,7 @@ async function bootstrap(): Promise<void> {
   await storage.ensureBucket();
   await inspectionQueue.add(
     generateInspectionRunsJobName,
-    { horizonDays: 35, requestedAt: new Date().toISOString() },
+    { correlationId: randomUUID(), horizonDays: 35, requestedAt: new Date().toISOString() },
     {
       jobId: "bounded-upcoming-generation",
       repeat: { every: 60 * 60 * 1_000 },
@@ -214,7 +216,7 @@ async function bootstrap(): Promise<void> {
   );
   await systemQueue.add(
     cleanupEvidenceUploadsJobName,
-    { requestedAt: new Date().toISOString() },
+    { correlationId: randomUUID(), requestedAt: new Date().toISOString() },
     {
       jobId: "evidence-orphan-cleanup",
       repeat: { every: 15 * 60 * 1_000 },
@@ -224,7 +226,7 @@ async function bootstrap(): Promise<void> {
   );
   await systemQueue.add(
     cleanupArtifactsJobName,
-    { requestedAt: new Date().toISOString() },
+    { correlationId: randomUUID(), requestedAt: new Date().toISOString() },
     {
       jobId: "report-export-expiry-cleanup",
       repeat: { every: 60 * 60 * 1_000 },
