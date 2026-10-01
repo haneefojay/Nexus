@@ -332,7 +332,12 @@ export class OperationsService {
     if (!job) throw new BadRequestException("Import is not ready");
     await this.importsQueue.add(
       "process-import",
-      { importJobId: job.id, organizationId: context.organizationId, requestedBy: context.userId },
+      {
+        correlationId: context.requestId,
+        importJobId: job.id,
+        organizationId: context.organizationId,
+        requestedBy: context.userId,
+      },
       { jobId: job.id },
     );
     return job;

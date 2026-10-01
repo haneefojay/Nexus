@@ -1,59 +1,76 @@
+import { sql, type createDatabase } from "@nexus/database";
+import type { StorageProvider } from "@nexus/storage";
 import { Injectable } from "@nestjs/common";
-import { createConnection } from "node:net";
-
+import type { Queue } from "bullmq";
 export type DependencyStatus = "up" | "down" | "not_configured";
-
 export interface ReadinessResult {
   status: "ready" | "not_ready";
-  dependencies: Record<"postgres" | "redis" | "objectStorage", DependencyStatus>;
+  dependencies: Record<
+    "postgres" | "redis" | "objectStorage" | "migrations" | "workers",
+    DependencyStatus
+  >;
 }
-
-interface Endpoint {
-  host: string;
-  port: number;
+export interface ReadinessDependencies {
+  db?: ReturnType<typeof createDatabase>["db"];
+  queues?: Queue[];
+  storage?: StorageProvider;
 }
-
-function endpointFromUrl(value: string | undefined, fallbackPort: number): Endpoint | null {
-  if (!value) return null;
-  const url = new URL(value);
-  return {
-    host: url.hostname,
-    port: url.port ? Number.parseInt(url.port, 10) : fallbackPort,
-  };
+async function bounded<T>(p: Promise<T>, ms = 1500) {
+  let t: NodeJS.Timeout | undefined;
+  try {
+    return await Promise.race([
+      p,
+      new Promise<T>((_, r) => {
+        t = setTimeout(() => r(new Error("TIMEOUT")), ms);
+      }),
+    ]);
+  } finally {
+    if (t) clearTimeout(t);
+  }
 }
-
-async function canConnect(endpoint: Endpoint | null, timeoutMs = 1_500): Promise<DependencyStatus> {
-  if (!endpoint) return "not_configured";
-
-  return new Promise((resolve) => {
-    const socket = createConnection(endpoint);
-    const finish = (status: DependencyStatus): void => {
-      socket.removeAllListeners();
-      socket.destroy();
-      resolve(status);
-    };
-
-    socket.setTimeout(timeoutMs);
-    socket.once("connect", () => finish("up"));
-    socket.once("timeout", () => finish("down"));
-    socket.once("error", () => finish("down"));
-  });
-}
-
 @Injectable()
 export class ReadinessService {
+  constructor(private d: ReadinessDependencies = {}) {}
   async check(): Promise<ReadinessResult> {
-    const [postgres, redis, objectStorage] = await Promise.all([
-      canConnect(endpointFromUrl(process.env.DATABASE_URL, 5432)),
-      canConnect(endpointFromUrl(process.env.REDIS_URL, 6379)),
-      canConnect(endpointFromUrl(process.env.S3_ENDPOINT, 443)),
-    ]);
-
-    const dependencies = { postgres, redis, objectStorage };
-    const status = Object.values(dependencies).every((value) => value === "up")
-      ? "ready"
-      : "not_ready";
-
-    return { status, dependencies };
+    const { db, queues = [], storage } = this.d;
+    let postgres: DependencyStatus = db ? "down" : "not_configured",
+      migrations: DependencyStatus = db ? "down" : "not_configured",
+      redis: DependencyStatus = queues.length ? "down" : "not_configured",
+      workers: DependencyStatus = queues.length ? "down" : "not_configured",
+      objectStorage: DependencyStatus = storage ? "down" : "not_configured";
+    if (db)
+      try {
+        const x = await bounded(
+            db.execute(
+              sql`select to_regclass('public.report_requests') reports,to_regclass('public.export_requests') exports`,
+            ),
+          ),
+          r = x[0] as { reports?: string | null; exports?: string | null } | undefined;
+        postgres = "up";
+        migrations = r?.reports && r.exports ? "up" : "down";
+      } catch {
+        postgres = migrations = "down";
+      }
+    if (queues.length)
+      try {
+        const x = await bounded(
+          Promise.all(queues.map(async (q) => (await q.getWorkers()).length)),
+        );
+        redis = "up";
+        workers = x.some((n) => n > 0) ? "up" : "down";
+      } catch {
+        redis = workers = "down";
+      }
+    if (storage)
+      try {
+        objectStorage = (await bounded(storage.checkHealth())) ? "up" : "down";
+      } catch {
+        objectStorage = "down";
+      }
+    const dependencies = { postgres, redis, objectStorage, migrations, workers };
+    return {
+      status: Object.values(dependencies).every((v) => v === "up") ? "ready" : "not_ready",
+      dependencies,
+    };
   }
 }

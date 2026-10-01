@@ -222,7 +222,11 @@ function InspectionDashboard({ dashboard }: { dashboard: Dashboard }) {
                 <td>{row.required}</td>
                 <td>{row.completed}</td>
                 <td>{row.overdue}</td>
-                <td>{row.required ? Math.round((row.completed / row.required) * 100) : 100}%</td>
+                <td>
+                  {row.required
+                    ? `${Math.round((row.completed / row.required) * 100)}%`
+                    : "No scheduled data"}
+                </td>
               </tr>
             ))}
           </tbody>

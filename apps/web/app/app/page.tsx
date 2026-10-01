@@ -10,6 +10,7 @@ import {
   CalendarDays,
   ClipboardCheck,
   FileCheck2,
+  FileText,
   Map,
   Menu,
   Search,
@@ -26,6 +27,7 @@ import { api } from "@/lib/api";
 
 import { MapView } from "./map-view";
 import { InspectionsWorkspace } from "./inspections-workspace";
+import { ReportsWorkspace } from "./reports-workspace";
 import { FindingsWorkspace, GlobalSearch } from "./findings-workspace";
 
 type Organization = { id: string; name: string; role: string; slug: string };
@@ -55,6 +57,7 @@ type View =
   | "templates"
   | "plans"
   | "findings"
+  | "reports"
   | "search"
   | "sites"
   | "assets"
@@ -69,6 +72,7 @@ const navigation: { id: View; label: string; icon: typeof Activity }[] = [
   { id: "templates", label: "Templates", icon: ClipboardCheck },
   { id: "plans", label: "Plans & schedules", icon: CalendarDays },
   { id: "findings", label: "Findings & actions", icon: Activity },
+  { id: "reports", label: "Reports & exports", icon: FileText },
   { id: "search", label: "Global search", icon: Search },
   { id: "sites", label: "Sites", icon: Building2 },
   { id: "assets", label: "Assets", icon: Database },
@@ -242,6 +246,7 @@ export default function OperationsPage() {
             sites={sites}
           />
         )}
+        {view === "reports" && <ReportsWorkspace organizationId={organizationId} />}
         {view === "findings" && (
           <FindingsWorkspace organizationId={organizationId} members={members} />
         )}

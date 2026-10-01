@@ -245,7 +245,7 @@ export class InspectionsService {
       templateVersionId: input.templateVersionId,
       targetType: input.targetType,
     });
-    await this.enqueueGeneration(created!.id);
+    await this.enqueueGeneration(created!.id, context.requestId);
     return created!;
   }
 
@@ -282,7 +282,7 @@ export class InspectionsService {
       id,
       {},
     );
-    if (active) await this.enqueueGeneration(id);
+    if (active) await this.enqueueGeneration(id, context.requestId);
     return updated;
   }
 
@@ -570,7 +570,7 @@ export class InspectionsService {
     const coverage = await this.db.execute(sql`
       select s.id as site_id, s.name as site_name,
         count(r.id) filter (where r.scheduled_for <= now())::int as required,
-        count(r.id) filter (where r.status = 'CLOSED')::int as completed,
+        count(r.id) filter (where r.scheduled_for <= now() and r.status = 'CLOSED')::int as completed,
         count(r.id) filter (where r.due_at < now()
           and r.status in ('ASSIGNED','READY','IN_PROGRESS'))::int as overdue
       from sites s
@@ -686,10 +686,10 @@ export class InspectionsService {
     if (!membership) throw new BadRequestException("Assigned user is not an active member");
   }
 
-  private async enqueueGeneration(planId: string) {
+  private async enqueueGeneration(planId: string, correlationId: string) {
     await this.queue.add(
       "generate-inspection-runs",
-      { planId, horizonDays: 35, requestedAt: new Date().toISOString() },
+      { correlationId, planId, horizonDays: 35, requestedAt: new Date().toISOString() },
       { jobId: `plan-${planId}`, attempts: 5, backoff: { type: "exponential", delay: 1_000 } },
     );
   }

@@ -64,6 +64,27 @@
       "when": 1790809200000,
       "tag": "0008_phase_four_offline_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790812800000,
+      "tag": "0009_phase_five_reports",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790816400000,
+      "tag": "0010_phase_five_exports",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790820000000,
+      "tag": "0011_phase_five_dashboard_index",
+      "breakpoints": true
     }
   ]
 }

@@ -33,6 +33,17 @@ export const inspectionRunStatuses = [
 ] as const;
 export type InspectionRunStatus = (typeof inspectionRunStatuses)[number];
 
+export const reportableInspectionStatuses: ReadonlySet<InspectionRunStatus> = new Set([
+  "SUBMITTED",
+  "REVIEW_REQUIRED",
+  "APPROVED",
+  "CLOSED",
+]);
+
+export function isInspectionReportable(status: InspectionRunStatus): boolean {
+  return reportableInspectionStatuses.has(status);
+}
+
 export const inspectionResponseTypes = [
   "PASS_FAIL",
   "YES_NO",
@@ -582,6 +593,10 @@ export type Permission =
   | "actions:verify"
   | "evidence:read"
   | "evidence:manage"
+  | "exports:read"
+  | "exports:manage"
+  | "reports:read"
+  | "reports:manage"
   | "search:read";
 
 export type PhaseOnePermission = Permission;
@@ -613,6 +628,10 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     "actions:verify",
     "evidence:read",
     "evidence:manage",
+    "exports:read",
+    "exports:manage",
+    "reports:read",
+    "reports:manage",
     "search:read",
   ]),
   OPERATIONS_MANAGER: new Set([
@@ -640,6 +659,10 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     "actions:verify",
     "evidence:read",
     "evidence:manage",
+    "exports:read",
+    "exports:manage",
+    "reports:read",
+    "reports:manage",
     "search:read",
   ]),
   SUPERVISOR: new Set([
@@ -661,6 +684,10 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     "actions:verify",
     "evidence:read",
     "evidence:manage",
+    "exports:read",
+    "exports:manage",
+    "reports:read",
+    "reports:manage",
     "search:read",
   ]),
   TECHNICIAN: new Set([
@@ -678,6 +705,9 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     "actions:execute",
     "evidence:read",
     "evidence:manage",
+    "exports:read",
+    "reports:read",
+    "reports:manage",
     "search:read",
   ]),
   VIEWER: new Set([
@@ -692,6 +722,8 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     "findings:read",
     "actions:read",
     "evidence:read",
+    "exports:read",
+    "reports:read",
     "search:read",
   ]),
 };
@@ -811,4 +843,12 @@ export function validateAssetImportRows(rows: readonly AssetImportRow[]): Import
 
 function issue(rowNumber: number, field: keyof AssetImportRow, code: string): ImportRowIssue {
   return { rowNumber, field, code, message: `${String(field)} failed ${code}.` };
+}
+
+export function isArtifactCleanupEligible(
+  status: "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED" | "EXPIRED",
+  expiresAt: Date | null,
+  now: Date,
+): boolean {
+  return status === "COMPLETED" && expiresAt !== null && expiresAt.getTime() <= now.getTime();
 }

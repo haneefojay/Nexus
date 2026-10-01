@@ -2,6 +2,7 @@ import type { NexusAuth } from "@nexus/auth";
 import type { createDatabase } from "@nexus/database";
 import { DynamicModule, Module } from "@nestjs/common";
 import type { AuthEmailDispatcher } from "@nexus/auth";
+import type { GenerateInspectionReportJob, GenerateOperationalExportJob } from "@nexus/contracts";
 import type { Queue } from "bullmq";
 import type { StorageProvider } from "@nexus/storage";
 
@@ -20,6 +21,10 @@ import { FindingsController } from "./findings/findings.controller.js";
 import { FindingsService } from "./findings/findings.service.js";
 import { EvidenceController } from "./evidence/evidence.controller.js";
 import { EvidenceService } from "./evidence/evidence.service.js";
+import { ExportsController } from "./exports/exports.controller.js";
+import { ExportsService } from "./exports/exports.service.js";
+import { ReportsController } from "./reports/reports.controller.js";
+import { ReportsService } from "./reports/reports.service.js";
 import { SearchController } from "./search/search.controller.js";
 import { SearchService } from "./search/search.service.js";
 import { FieldSyncController } from "./sync/field-sync.controller.js";
@@ -28,8 +33,10 @@ import {
   AUTH_TOKEN,
   DATABASE_TOKEN,
   EMAIL_DISPATCHER_TOKEN,
+  EXPORT_QUEUE_TOKEN,
   IMPORT_QUEUE_TOKEN,
   INSPECTION_QUEUE_TOKEN,
+  REPORT_QUEUE_TOKEN,
   STORAGE_TOKEN,
   WEB_URL_TOKEN,
 } from "./tokens.js";
@@ -40,6 +47,8 @@ export interface AppDependencies {
   emailDispatcher: AuthEmailDispatcher;
   importQueue: Queue;
   inspectionQueue: Queue;
+  reportQueue: Queue<GenerateInspectionReportJob>;
+  exportQueue: Queue<GenerateOperationalExportJob>;
   storage: StorageProvider;
   webUrl: string;
 }
@@ -57,16 +66,43 @@ export class AppModule {
         InspectionsController,
         FindingsController,
         EvidenceController,
+        ReportsController,
+        ExportsController,
         SearchController,
         FieldSyncController,
       ],
       providers: [
-        ReadinessService,
+        {
+          provide: ReadinessService,
+          inject: [
+            DATABASE_TOKEN,
+            IMPORT_QUEUE_TOKEN,
+            INSPECTION_QUEUE_TOKEN,
+            REPORT_QUEUE_TOKEN,
+            EXPORT_QUEUE_TOKEN,
+            STORAGE_TOKEN,
+          ],
+          useFactory: (
+            db: AppDependencies["db"],
+            importQueue: Queue,
+            inspectionQueue: Queue,
+            reportQueue: Queue<GenerateInspectionReportJob>,
+            exportQueue: Queue<GenerateOperationalExportJob>,
+            storage: StorageProvider,
+          ) =>
+            new ReadinessService({
+              db,
+              queues: [importQueue, inspectionQueue, reportQueue, exportQueue],
+              storage,
+            }),
+        },
         { provide: AUTH_TOKEN, useValue: dependencies.auth },
         { provide: DATABASE_TOKEN, useValue: dependencies.db },
         { provide: EMAIL_DISPATCHER_TOKEN, useValue: dependencies.emailDispatcher },
         { provide: IMPORT_QUEUE_TOKEN, useValue: dependencies.importQueue },
         { provide: INSPECTION_QUEUE_TOKEN, useValue: dependencies.inspectionQueue },
+        { provide: REPORT_QUEUE_TOKEN, useValue: dependencies.reportQueue },
+        { provide: EXPORT_QUEUE_TOKEN, useValue: dependencies.exportQueue },
         { provide: STORAGE_TOKEN, useValue: dependencies.storage },
         { provide: WEB_URL_TOKEN, useValue: dependencies.webUrl },
         {
@@ -107,6 +143,24 @@ export class AppModule {
           inject: [DATABASE_TOKEN, STORAGE_TOKEN],
           useFactory: (db: AppDependencies["db"], storage: StorageProvider) =>
             new EvidenceService(db, storage),
+        },
+        {
+          provide: ExportsService,
+          inject: [DATABASE_TOKEN, EXPORT_QUEUE_TOKEN, STORAGE_TOKEN],
+          useFactory: (
+            db: AppDependencies["db"],
+            queue: Queue<GenerateOperationalExportJob>,
+            storage: StorageProvider,
+          ) => new ExportsService(db, queue, storage),
+        },
+        {
+          provide: ReportsService,
+          inject: [DATABASE_TOKEN, REPORT_QUEUE_TOKEN, STORAGE_TOKEN],
+          useFactory: (
+            db: AppDependencies["db"],
+            queue: Queue<GenerateInspectionReportJob>,
+            storage: StorageProvider,
+          ) => new ReportsService(db, queue, storage),
         },
         {
           provide: SearchService,

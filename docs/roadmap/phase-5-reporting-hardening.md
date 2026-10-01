@@ -23,9 +23,11 @@ Report truth and immutability, accessibility, security suite, 10k-asset map/sear
 
 ## Definition of Done
 
-- [ ] Real reports and exports can be generated and authorized.
-- [ ] Accessibility and security blockers are resolved.
-- [ ] Performance targets are measured.
-- [ ] Errors, jobs, and infrastructure are observable.
-- [ ] Backup/restore is verified.
-- [ ] Fictional demo uses the real backend.
+- [x] Real reports and exports can be generated and authorized.
+- [x] Accessibility and security blockers are resolved.
+- [x] Performance targets are measured.
+- [x] Errors, jobs, and infrastructure are observable.
+- [x] Backup/restore is verified.
+- [x] Fictional demo uses the real backend.
+
+**Phase 5 is complete. Phase 6 — Release is ready.**

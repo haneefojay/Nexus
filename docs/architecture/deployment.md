@@ -13,3 +13,7 @@ Backup/verify → run backward-compatible migrations once → deploy API/worker/
 ## Runtime
 
 Stateless web/API replicas; private managed PostgreSQL/Redis/object storage; worker concurrency bounded by job class. Graceful shutdown drains HTTP and jobs. Rollback compatibility is documented per release.
+
+## Phase 5 implementation
+
+Deployment gates now validate required environment values, additive migration ordering through `0011`, private storage, dependency readiness, required workers, graceful termination, safe non-production smoke probes, fictional seed, recovery rehearsal, accessibility, secret patterns, dependency audit, and deterministic scale tests. Application rollback is allowed only while schema-compatible; durable migrations are forward-fixed or recovered from a verified isolated restore and are never rewritten.

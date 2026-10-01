@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main, dev, "phase-2/**", "phase-3/**", "phase-4/**"]
+    branches: [main, dev, "phase-2/**", "phase-3/**", "phase-4/**", "phase-5/**"]
 
 permissions:
   contents: read
@@ -28,13 +28,14 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - run: bash scripts/check-secrets.sh
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
       - run: pnpm audit --audit-level high
 
   infrastructure:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -60,6 +61,29 @@ jobs:
       - run: bash scripts/check-phase-three-database.sh
       - run: bash scripts/check-phase-three-lifecycle.sh
       - run: bash scripts/check-phase-four-database.sh
+      - run: bash scripts/check-phase-five-reports.sh
+      - name: Seed fictional demo through real services
+        run: pnpm --filter @nexus/api seed:demo
+        env:
+          NODE_ENV: development
+          WEB_URL: http://localhost:3000
+          API_URL: http://localhost:3001
+          DATABASE_URL: postgresql://nexus:nexus_local_only@localhost:5432/nexus
+          REDIS_URL: redis://localhost:6379
+          S3_ENDPOINT: http://localhost:9000
+          S3_REGION: us-east-1
+          S3_BUCKET: nexus-local
+          S3_ACCESS_KEY: nexus
+          S3_SECRET_KEY: nexus_local_only
+          BETTER_AUTH_SECRET: replace-with-at-least-32-random-characters
+          BETTER_AUTH_URL: http://localhost:3001
+          EMAIL_FROM: no-reply@nexus.local
+          SMTP_HOST: localhost
+          SMTP_PORT: 1025
+          ALLOW_DEMO_SEED: "true"
+          DEMO_PASSWORD: fictional-local-password
+      - run: bash scripts/check-backup-restore.sh
+      - run: bash scripts/check-phase-five-performance.sh
       - if: failure()
         name: Report Phase 3 smoke failure
         run: |

@@ -633,7 +633,7 @@ input::placeholder {
 
 .organization-control span,
 .system-health {
-  color: #66716b;
+  color: #8a9690;
   font-family: "Courier New", monospace;
   font-size: 9px;
   letter-spacing: 0.16em;
@@ -901,7 +901,7 @@ td {
 }
 
 th {
-  color: #69746e;
+  color: #8a9690;
   font-family: "Courier New", monospace;
   font-size: 9px;
   letter-spacing: 0.13em;
@@ -915,7 +915,7 @@ td:not(:first-child) {
   min-height: 190px;
   display: grid;
   place-items: center;
-  color: #66716b;
+  color: #8a9690;
   font-family: "Courier New", monospace;
   font-size: 10px;
   letter-spacing: 0.12em;
@@ -1631,13 +1631,13 @@ td:not(:first-child) {
   width: min(820px, 75vw);
 }
 .problem-copy .section-index {
-  color: #657069;
+  color: #4f5953;
 }
 .problem-copy h2 {
   font-size: clamp(50px, 6vw, 94px);
 }
 .problem-copy h2 span {
-  color: #8c948e;
+  color: #59635d;
 }
 .problem-copy p {
   width: min(540px, 75%);
@@ -1671,7 +1671,7 @@ td:not(:first-child) {
 .fragment span {
   display: block;
   margin-bottom: 24px;
-  color: #7a847d;
+  color: #555f59;
 }
 .unified-core {
   width: 270px;
@@ -1927,7 +1927,7 @@ td:not(:first-child) {
   margin-bottom: 10vh;
 }
 .section-heading .section-index {
-  color: #69736c;
+  color: #4f5953;
 }
 .section-heading h2 {
   margin-top: 0;
@@ -2613,7 +2613,7 @@ td:not(:first-child) {
   margin-bottom: 10vh;
 }
 .use-cases-heading .section-index {
-  color: #667169;
+  color: #4f5953;
 }
 .use-cases h2 {
   margin: 0;
@@ -2634,7 +2634,7 @@ td:not(:first-child) {
   font:
     9px Consolas,
     monospace;
-  color: #6a756d;
+  color: #4f5953;
 }
 .use-case-track svg {
   width: 23px;
@@ -2858,7 +2858,7 @@ td:not(:first-child) {
   border-top: 1px solid var(--line);
   display: flex;
   justify-content: space-between;
-  color: #626d66;
+  color: #8a9690;
   font:
     8px Consolas,
     monospace;

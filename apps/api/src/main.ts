@@ -8,10 +8,19 @@ import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { FastifyAdapter, NestFastifyApplication } from "@nestjs/platform-fastify";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
-import { importQueueName, inspectionQueueName } from "@nexus/contracts";
+import {
+  exportQueueName,
+  importQueueName,
+  inspectionQueueName,
+  reportQueueName,
+  type GenerateInspectionReportJob,
+  type GenerateOperationalExportJob,
+} from "@nexus/contracts";
 import { Queue } from "bullmq";
+import { StructuredLogger } from "@nexus/observability";
 import { S3StorageProvider } from "@nexus/storage";
 import { parseRedisConnection } from "./infrastructure/redis-connection.js";
+import { registerHardening } from "./security/hardening.js";
 
 import { AppModule } from "./app.module.js";
 import { QueuedAuthEmailDispatcher } from "./auth/auth-email-dispatcher.js";
@@ -22,6 +31,12 @@ async function bootstrap(): Promise<void> {
   const database = createDatabase(environment.DATABASE_URL);
   const emailDispatcher = new QueuedAuthEmailDispatcher(environment.REDIS_URL);
   const importQueue = new Queue(importQueueName, {
+    connection: parseRedisConnection(environment.REDIS_URL),
+  });
+  const exportQueue = new Queue<GenerateOperationalExportJob>(exportQueueName, {
+    connection: parseRedisConnection(environment.REDIS_URL),
+  });
+  const reportQueue = new Queue<GenerateInspectionReportJob>(reportQueueName, {
     connection: parseRedisConnection(environment.REDIS_URL),
   });
   const inspectionQueue = new Queue(inspectionQueueName, {
@@ -45,7 +60,27 @@ async function bootstrap(): Promise<void> {
     emailDispatcher,
   });
 
-  const adapter = new FastifyAdapter({ logger: true, trustProxy: true });
+  const logger = new StructuredLogger("api");
+  const adapter = new FastifyAdapter({
+    bodyLimit: 6 * 1024 * 1024,
+    logger: {
+      level: environment.NODE_ENV === "production" ? "info" : "debug",
+      redact: {
+        paths: [
+          "req.headers.authorization",
+          "req.headers.cookie",
+          "res.headers.set-cookie",
+          "password",
+          "token",
+          "uploadUrl",
+          "downloadUrl",
+          "objectKey",
+        ],
+        censor: "[REDACTED]",
+      },
+    },
+    trustProxy: true,
+  });
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule.register({
       auth,
@@ -53,12 +88,19 @@ async function bootstrap(): Promise<void> {
       emailDispatcher,
       importQueue,
       inspectionQueue,
+      reportQueue,
+      exportQueue,
       storage,
       webUrl: environment.WEB_URL,
     }),
     adapter,
   );
   const fastify = adapter.getInstance();
+  registerHardening(fastify, {
+    trustedOrigin: environment.WEB_URL,
+    production: environment.NODE_ENV === "production",
+    logger,
+  });
 
   await fastify.register(cors, {
     origin: [environment.WEB_URL],
@@ -95,6 +137,8 @@ async function bootstrap(): Promise<void> {
       emailDispatcher.close(),
       importQueue.close(),
       inspectionQueue.close(),
+      reportQueue.close(),
+      exportQueue.close(),
       database.close(),
     ]);
   };
