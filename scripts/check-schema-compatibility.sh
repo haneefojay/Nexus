@@ -24,7 +24,11 @@ pid=$!
 for _ in $(seq 1 60); do
   if curl --fail --silent http://localhost:3001/ready >/dev/null; then
     kill -TERM "$pid"
+    set +e
     wait "$pid"
+    baseline_exit=$?
+    set -e
+    [[ "$baseline_exit" -eq 0 || "$baseline_exit" -eq 143 ]]
     pid=""
     echo "Baseline $baseline started against the RC schema; forward-fix restart may proceed."
     exit 0
