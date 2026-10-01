@@ -73,9 +73,8 @@ async function main(): Promise<void> {
     }
     const passwordHash = await hashPassword(password);
     const literal = (value: string): string => `'${value.replaceAll("'", "''")}'`;
-    await database.client.unsafe(
-      `
-      BEGIN;
+    await database.client.begin(async (transaction) => {
+      await transaction.unsafe(`
       INSERT INTO users(id,email,name,email_verified,email_verified_at) VALUES('${ids.user}','demo.owner@nexus.invalid','Fictional Demo Owner',true,now()) ON CONFLICT(id) DO UPDATE SET name=excluded.name,email_verified=true;
       INSERT INTO accounts(account_id,provider_id,user_id,password) VALUES('demo.owner@nexus.invalid','credential','${ids.user}',${literal(passwordHash)}) ON CONFLICT(provider_id,account_id) DO UPDATE SET password=excluded.password;
       INSERT INTO organizations(id,name,slug,timezone) VALUES('${ids.organization}','Fictional Operations — Demo','fictional-operations-demo','Africa/Lagos') ON CONFLICT(id) DO NOTHING;
@@ -94,9 +93,8 @@ async function main(): Promise<void> {
       INSERT INTO storage_objects(id,organization_id,upload_grant_id,object_key,original_name,content_type,size,checksum,status) VALUES('${ids.object}','${ids.organization}','${ids.grant}',${literal(objectKey)},'fictional-demo-evidence.pdf','application/pdf',${body.length},${literal(checksum)},'AVAILABLE') ON CONFLICT(id) DO NOTHING;
       INSERT INTO evidence(id,organization_id,target_type,target_id,storage_object_id,uploader_user_id,captured_at,checksum,note) VALUES('${ids.evidence}','${ids.organization}','FINDING','${ids.finding}','${ids.object}','${ids.user}','2026-09-01T09:15:00Z',${literal(checksum)},'Fictional demo evidence') ON CONFLICT(id) DO NOTHING;
       INSERT INTO activity_events(organization_id,actor_user_id,action,resource_type,resource_id,metadata) SELECT '${ids.organization}','${ids.user}','demo.seeded','organization','${ids.organization}','{"fictional":true}' WHERE NOT EXISTS(SELECT 1 FROM activity_events WHERE organization_id='${ids.organization}' AND action='demo.seeded');
-      COMMIT;
-    `,
-    );
+      `);
+    });
     console.info("Fictional demo seeded through real database and private object storage paths.");
   } finally {
     await database.close();
