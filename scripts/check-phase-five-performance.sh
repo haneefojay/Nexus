@@ -1,5 +1,31 @@
 #!/usr/bin/env bash
 set -euo pipefail
+export NODE_ENV=test WEB_URL=http://localhost:3000 API_URL=http://localhost:3001
+export DATABASE_URL=${DATABASE_URL:-postgresql://nexus:nexus_local_only@localhost:5432/nexus}
+export REDIS_URL=${REDIS_URL:-redis://localhost:6379} S3_ENDPOINT=${S3_ENDPOINT:-http://localhost:9000}
+export S3_REGION=${S3_REGION:-us-east-1} S3_BUCKET=${S3_BUCKET:-nexus-local} S3_ACCESS_KEY=${S3_ACCESS_KEY:-nexus} S3_SECRET_KEY=${S3_SECRET_KEY:-nexus_local_only}
+export BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-phase-five-performance-secret-32-chars} BETTER_AUTH_URL=http://localhost:3001
+export EMAIL_FROM=no-reply@nexus.local SMTP_HOST=localhost SMTP_PORT=1025
+api_pid=""
+if ! curl --fail --silent --max-time 2 http://localhost:3001/health >/dev/null; then
+  pnpm --filter @nexus/api exec tsx src/main.ts >/tmp/phase-five-performance-api.log 2>&1 & api_pid=$!
+  for _ in $(seq 1 40); do curl --fail --silent http://localhost:3001/health >/dev/null && break; sleep .25; done
+fi
+cleanup_api() { [[ -z "$api_pid" ]] || kill "$api_pid" 2>/dev/null || true; rm -f /tmp/phase-five-perf-cookie /tmp/phase-five-perf-times; }
+trap cleanup_api EXIT
+curl --fail --silent --cookie-jar /tmp/phase-five-perf-cookie -H 'content-type: application/json' --data '{"email":"demo.owner@nexus.invalid","password":"fictional-local-password"}' http://localhost:3001/v1/auth/sign-in/email >/dev/null
+: >/tmp/phase-five-perf-times
+for i in $(seq 1 20); do
+  curl --fail --silent --output /dev/null --cookie /tmp/phase-five-perf-cookie -H 'x-organization-id: 0199abcd-0000-7000-8000-000000000002' -H 'content-type: application/json' --data "{\"name\":\"Fictional performance site $i\",\"reference\":\"PERF-API-$i\",\"type\":\"OTHER\",\"status\":\"ACTIVE\"}" --write-out '%{time_total}\n' http://localhost:3001/v1/sites >>/tmp/phase-five-perf-times
+done
+python3 - <<'PY2'
+from pathlib import Path
+values=sorted(float(x) for x in Path('/tmp/phase-five-perf-times').read_text().split())
+p95=values[max(0, int(len(values)*.95)-1)]
+print(f'api-create-site p95={p95*1000:.1f}ms samples={len(values)} limit=400ms')
+if p95 >= .4: raise SystemExit('normal API CRUD p95 exceeded 400ms')
+PY2
+
 psql=(docker compose exec -T postgres psql -U "${POSTGRES_USER:-nexus}" -d "${POSTGRES_DB:-nexus}" -v ON_ERROR_STOP=1)
 "${psql[@]}" <<'SQL'
 BEGIN;

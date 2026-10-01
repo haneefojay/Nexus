@@ -5,14 +5,14 @@ import { parse } from "csv-parse/sync";
 import { renderCsv } from "./exports.js";
 import { renderInspectionPdf, type InspectionReportSnapshot } from "./reporting.js";
 
-function measure(name: string, limitMs: number, run: () => unknown): void {
+function measure(name: string, rows: number, limitMs: number, run: () => unknown): void {
   const started = performance.now();
   run();
   const duration = performance.now() - started;
   console.info(
     JSON.stringify({
       operation: name,
-      rows: name.includes("import") ? 100_000 : 10_000,
+      rows,
       durationMs: Math.round(duration),
       limitMs,
     }),
@@ -24,11 +24,11 @@ const importCsv = [
   "identifier,name",
   ...Array.from({ length: 100_000 }, (_, i) => `A-${i},Synthetic asset ${i}`),
 ].join("\n");
-measure("import-parse-100k", 30_000, () => {
+measure("import-parse-100k", 100_000, 30_000, () => {
   const rows = parse(importCsv, { columns: true, skip_empty_lines: true });
   if (rows.length !== 100_000) throw new Error("Import row count mismatch");
 });
-measure("export-render-10k", 10_000, () =>
+measure("export-render-10k", 10_000, 10_000, () =>
   renderCsv({
     columns: ["identifier", "name"],
     rows: Array.from({ length: 10_000 }, (_, i) => [`A-${i}`, `Synthetic asset ${i}`]),
@@ -61,4 +61,6 @@ const snapshot: InspectionReportSnapshot = {
   findings: [],
   evidence: [],
 };
-measure("report-render", 2_000, () => renderInspectionPdf(snapshot, new Date(0).toISOString()));
+measure("report-render", 100, 2_000, () =>
+  renderInspectionPdf(snapshot, new Date(0).toISOString()),
+);
