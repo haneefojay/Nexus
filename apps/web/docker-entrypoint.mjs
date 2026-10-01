@@ -26,7 +26,7 @@ child.once("error", (error) => {
   console.error(error);
   process.exitCode = 1;
 });
-child.once("exit", (code, signal) => {
+child.once("exit", (code) => {
   if (shutdownSignal) {
     process.exitCode = 0;
     return;
