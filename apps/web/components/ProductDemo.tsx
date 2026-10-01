@@ -73,19 +73,24 @@ export function ProductDemo() {
           </div>
         </header>
         <aside className="shell-sidebar" aria-label="Product navigation">
-          <button className="active">
+          <button
+            type="button"
+            className="active"
+            aria-label="Network overview"
+            aria-current="page"
+          >
             <Activity />
             <span>Network</span>
           </button>
-          <button>
+          <button type="button" aria-label="Regions">
             <LocateFixed />
             <span>Regions</span>
           </button>
-          <button>
+          <button type="button" aria-label="Attention">
             <AlertTriangle />
             <span>Attention</span>
           </button>
-          <button>
+          <button type="button" aria-label="Controls">
             <SlidersHorizontal />
             <span>Controls</span>
           </button>
